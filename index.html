@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>AI 群聊室</title>
+  <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #ededed;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: #07c160;
+      color: white;
+      text-align: center;
+      padding: 15px 10px;
+      font-size: 18px;
+      font-weight: bold;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header .room-info {
+      font-size: 12px;
+      opacity: 0.9;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .message {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      line-height: 1.5;
+      font-size: 15px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      animation: fadeIn 0.2s ease;
+    }
+    .user-msg {
+      align-self: flex-end;
+      background: #95ec69;
+      color: #000;
+      border-top-right-radius: 4px;
+    }
+    .ai-msg {
+      align-self: flex-start;
+      background: #fff;
+      color: #000;
+      border-top-left-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .other-msg {
+      align-self: flex-start;
+      background: #fff;
+      color: #000;
+      border-top-left-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .other-msg .sender {
+      font-size: 11px;
+      color: #07c160;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .ai-msg.loading {
+      color: #888;
+      font-style: italic;
+    }
+    .input-area {
+      display: flex;
+      padding: 10px;
+      background: #f7f7f7;
+      border-top: 1px solid #ddd;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .input-area textarea {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+      resize: none;
+      outline: none;
+      max-height: 120px;
+      line-height: 1.4;
+      font-family: inherit;
+    }
+    .input-area button {
+      background: #07c160;
+      border: none;
+      color: white;
+      font-weight: bold;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+    .input-area button:active {
+      background: #06ad56;
+    }
+    .setup-overlay {
+      position: fixed;
+      top: 0; left: 0 ; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .setup-card {
+      background: white;
+      width: 85%;
+      max-width: 360px;
+      border-radius: 16px;
+      padding: 25px 20px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .setup-card h2 { margin-bottom: 8px; font-size: 20px; }
+    .setup-card p { color: #666; font-size: 14px; margin-bottom: 20px; }
+    .setup-card input {
+      width: 100%; padding: 12px; border-radius: 10px;
+      border: 1px solid #ddd; font-size: 14px; margin-bottom: 15px; outline: none;
+    }
+    .setup-card button {
+      background: #07c160; border: none; color: white;
+      font-weight: bold; padding: 10px 30px; border-radius: 20px;
+      font-size: 15px; cursor: pointer; width: 100%;
+    }
+    .setup-card .note { margin-top: 12px; font-size: 12px; color: #999; }
+    .hidden { display: none !important; }
+    .lock-message {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; color: #888; font-size: 16px;
+      text-align: center; padding: 20px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header" id="headerBar" style="display:none;">
+    <span>🤖 群聊（小深也在）</span>
+    <span class="room-info" id="roomDisplay" title="点击复制邀请链接"></span>
+  </div>
+
+  <div class="chat-container" id="chatBox"></div>
+
+  <div class="input-area" id="inputArea" style="display:none;">
+    <textarea id="userInput" rows="1" placeholder="发言或直接问小深..." onkeydown="handleKey(event)"></textarea>
+    <button onclick="sendMyMessage()">发送</button>
+  </div>
+
+  <!-- 初始界面 -->
+  <div id="setupScreen" class="lock-message">
+    <div>
+      <h2>👥 AI 群聊室</h2>
+      <p style="margin:10px 0; color:#666;">房主创建房间，AI 会像真人一样参与聊天</p>
+      <div style="margin:20px 0;">
+        <button onclick="createRoom()" style="background:#07c160; color:white; border:none; padding:12px 40px; border-radius:24px; font-size:16px; margin:10px;">🏠 创建房间</button>
+      </div>
+      <div style="margin:20px 0;">
+        <input type="text" id="joinRoomIdInput" placeholder="输入房间号" style="padding:10px; border-radius:20px; border:1px solid #ccc; width:180px; text-align:center;">
+        <button onclick="joinRoom()" style="background:#07c160; color:white; border:none; padding:10px 24px; border-radius:20px; font-size:15px; margin-left:5px;">加入</button>
+      </div>
+      <p style="color:#999; font-size:13px;">房主需要提供 API Key，其他人可直接加入</p>
+    </div>
+  </div>
+
+  <!-- 房主设置 API Key -->
+  <div class="setup-overlay hidden" id="apiKeyOverlay">
+    <div class="setup-card">
+      <h2>🔑 房主设置 API Key</h2>
+      <p>请输入您的 DeepSeek API Key<br>仅用于房主调用 AI，其他人不可见</p>
+      <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off">
+      <button onclick="confirmApiKey()">确认并开启房间</button>
+      <div class="note">没有 Key？<a href="https://platform.deepseek.com" target="_blank">点此获取</a></div>
+    </div>
+  </div>
+
+  <script>
+    // ========== 配置 ==========
+    const API_URL = "https://api.deepseek.com/v1/chat/completions";
+    const MODEL = "deepseek-chat";
+
+    // 全局变量
+    let peer = null;
+    let connections = [];          
+    let hostConn = null;          
+    let isHost = false;
+    let roomId = null;
+    let myNickname = "";
+    let hostApiKey = null;
+
+    // 完整聊天历史（房主维护，传给 AI 作为上下文）
+    let messagesHistory = [
+      {
+        role: "system",
+        content: `你是“小深”，一个普通群友。你必须遵守以下规则：
+1. 用简短、口语化的中文回复，每条不超过50字。
+2. 不要用“我是AI助手”之类的客套话，直接回答问题或接话。
+3. 保持中立、自然的语气，像真人一样聊天。
+4. 你可以看到所有人的发言，拥有整个聊天室的记忆，引用上下文时自然带出。
+5. 如果有人直接提问，直接回答；闲聊时也适当参与，但保持精炼。`
+      }
+    ];
+
+    // UI 元素
+    const chatBox = document.getElementById("chatBox");
+    const userInput = document.getElementById("userInput");
+    const setupScreen = document.getElementById("setupScreen");
+    const headerBar = document.getElementById("headerBar");
+    const inputArea = document.getElementById("inputArea");
+    const roomDisplay = document.getElementById("roomDisplay");
+    const apiKeyOverlay = document.getElementById("apiKeyOverlay");
+    const apiKeyInput = document.getElementById("apiKeyInput");
+
+    // ========== 工具函数 ==========
+    function randomString(len = 6) {
+      return Math.random().toString(36).substring(2, 2+len);
+    }
+
+    // 在聊天框显示消息
+    function displayMessage(type, text, senderName = null, isNew = true) {
+      const div = document.createElement("div");
+      div.classList.add("message");
+      if (type === "user") {
+        div.classList.add("user-msg");
+        div.textContent = text;
+      } else if (type === "ai") {
+        div.classList.add("ai-msg");
+        div.textContent = text;
+      } else if (type === "other") {
+        div.classList.add("other-msg");
+        div.innerHTML = `<div class="sender">${senderName || "匿名"}</div>${text}`;
+      }
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return div;
+    }
+
+    // 房主广播所有历史消息给一个新连接（让新人看到之前的聊天）
+    function syncHistoryTo(conn) {
+      if (!isHost) return;
+      // 遍历已显示的消息DOM，发送给新人（简化方案：发送序列化历史）
+      const historyEvents = [];
+      for (let i = 1; i < messagesHistory.length; i++) { // 跳过 system
+        const msg = messagesHistory[i];
+        let event;
+        if (msg.role === "user") {
+          // 消息格式：“昵称: 内容”，需要解析出来
+          const colonIndex = msg.content.indexOf(": ");
+          if (colonIndex > 0) {
+            const sender = msg.content.substring(0, colonIndex);
+            const text = msg.content.substring(colonIndex + 2);
+            event = { type: "chat-message", text, sender };
+          } else {
+            // 房主自己发的没有昵称前缀
+            event = { type: "chat-message", text: msg.content, sender: "房主" };
+          }
+        } else if (msg.role === "assistant") {
+          event = { type: "ai-end", fullContent: msg.content };
+        }
+        if (event) conn.send(event);
+      }
+    }
+
+    // 房主调用 AI 并广播回复
+    async function callAIAndBroadcast(userMessageText) {
+      if (!hostApiKey) return;
+
+      // 将用户发言添加到历史（完整格式：昵称: 文本）
+      addToHistory("user", userMessageText);
+
+      // 本地显示加载占位
+      const aiMsgDiv = displayMessage("ai", "思考中...");
+      aiMsgDiv.classList.add("loading");
+      broadcastToAll({ type: "ai-loading" });
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${hostApiKey}`
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: messagesHistory,
+            stream: true
+          })
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error?.message || `请求失败 (${response.status})`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = "";
+        aiMsgDiv.textContent = "";
+        aiMsgDiv.classList.remove("loading");
+        broadcastToAll({ type: "ai-start" });
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === "[DONE]") continue;
+              try {
+                const json = JSON.parse(dataStr);
+                const delta = json.choices?.[0]?.delta?.content;
+                if (delta) {
+                  fullContent += delta;
+                  aiMsgDiv.textContent = fullContent;
+                  chatBox.scrollTop = chatBox.scrollHeight;
+                  broadcastToAll({ type: "ai-delta", content: delta });
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
+        // AI 回复完成
+        if (fullContent) {
+          addToHistory("assistant", fullContent);
+          broadcastToAll({ type: "ai-end", fullContent });
+        } else {
+          aiMsgDiv.textContent = "（小深没说话）";
+          broadcastToAll({ type: "ai-end", fullContent: "（小深没说话）" });
+        }
+      } catch (error) {
+        aiMsgDiv.classList.remove("loading");
+        aiMsgDiv.textContent = "出错了：" + error.message;
+        aiMsgDiv.style.color = "red";
+        broadcastToAll({ type: "ai-error", error: error.message });
+        console.error(error);
+      }
+    }
+
+    function addToHistory(role, content) {
+      messagesHistory.push({ role, content });
+    }
+
+    // ========== PeerJS 连接 ==========
+    function initializePeer(id) {
+      peer = new Peer(id, { debug: 0 });
+
+      peer.on("open", (pid) => {
+        console.log("Peer ID:", pid);
+        if (isHost) {
+          roomId = pid;
+          roomDisplay.textContent = "房间号: " + roomId;
+          navigator.clipboard?.writeText(getShareLink()).catch(() => {});
+        }
+      });
+
+      peer.on("connection", (conn) => {
+        if (isHost) {
+          connections.push(conn);
+          setupConnectionHandlers(conn);
+          // 发送完整历史给新人
+          syncHistoryTo(conn);
+          conn.send({ type: "host-nickname", nickname: "小深也在的群聊" });
+        }
+      });
+
+      peer.on("error", (err) => {
+        console.error("Peer error:", err);
+        alert("连接出错: " + err.message);
+      });
+    }
+
+    function setupConnectionHandlers(conn) {
+      conn.on("data", (data) => {
+        if (isHost) handleHostReceived(conn, data);
+        else handleGuestReceived(data);
+      });
+      conn.on("close", () => {
+        if (isHost) connections = connections.filter(c => c !== conn);
+      });
+    }
+
+    // 房主收到访客数据
+    function handleHostReceived(conn, data) {
+      if (data.type === "chat-message") {
+        const text = data.text;
+        const sender = data.nickname || "访客";
+        // 广播给所有其他访客（房主自己也会通过 broadcastToAll 收到显示指令）
+        broadcastToAll({ type: "chat-message", text, sender }, conn);
+        // 房主界面显示
+        displayMessage("other", text, sender);
+        // 触发 AI（上下文格式：“昵称: 内容”）
+        callAIAndBroadcast(`${sender}: ${text}`);
+      } else if (data.type === "set-nickname") {
+        conn.nickname = data.nickname;
+      }
+    }
+
+    // 访客收到数据
+    function handleGuestReceived(data) {
+      switch (data.type) {
+        case "host-nickname":
+          break;
+        case "chat-message":
+          displayMessage("other", data.text, data.sender);
+          break;
+        case "ai-loading":
+          displayMessage("ai", "思考中...").classList.add("loading");
+          break;
+        case "ai-start":
+          const last = chatBox.lastChild;
+          if (last && last.classList.contains("loading")) {
+            last.textContent = "";
+            last.classList.remove("loading");
+          }
+          break;
+        case "ai-delta":
+          const lastMsg = chatBox.lastChild;
+          if (lastMsg && lastMsg.classList.contains("ai-msg") && !lastMsg.classList.contains("loading")) {
+            lastMsg.textContent += data.content;
+          } else {
+            displayMessage("ai", data.content);
+          }
+          chatBox.scrollTop = chatBox.scrollHeight;
+          break;
+        case "ai-end":
+          const finalMsg = chatBox.lastChild;
+          if (finalMsg && finalMsg.classList.contains("ai-msg")) {
+            finalMsg.textContent = data.fullContent;
+          } else {
+            displayMessage("ai", data.fullContent);
+          }
+          break;
+        case "ai-error":
+          displayMessage("ai", "小深出错了: " + data.error);
+          break;
+      }
+    }
+
+    function broadcastToAll(data, excludeConn = null) {
+      connections.forEach(conn => {
+        if (conn !== excludeConn && conn.open) conn.send(data);
+      });
+    }
+
+    // ========== 用户操作 ==========
+    function createRoom() {
+      isHost = true;
+      myNickname = "房主";
+      setupScreen.classList.add("hidden");
+      apiKeyOverlay.classList.remove("hidden");
+    }
+
+    function confirmApiKey() {
+      const key = apiKeyInput.value.trim();
+      if (!key) {
+        alert("请输入 API Key");
+        return;
+      }
+      hostApiKey = key;
+      apiKeyOverlay.classList.add("hidden");
+      startHost();
+    }
+
+    function startHost() {
+      headerBar.style.display = "flex";
+      inputArea.style.display = "flex";
+      roomDisplay.textContent = "创建中...";
+      initializePeer("host-" + randomString(8));
+    }
+
+    function joinRoom() {
+      const inputId = document.getElementById("joinRoomIdInput").value.trim();
+      if (!inputId) {
+        alert("请输入房间号");
+        return;
+      }
+      isHost = false;
+      myNickname = "访客" + randomString(3);
+      roomId = inputId;
+      setupScreen.classList.add("hidden");
+      headerBar.style.display = "flex";
+      inputArea.style.display = "flex";
+      roomDisplay.textContent = "已加入: " + roomId;
+      initializePeer("guest-" + randomString(8));
+
+      peer.on("open", () => {
+        hostConn = peer.connect(roomId, { reliable: true });
+        hostConn.on("open", () => {
+          setupConnectionHandlers(hostConn);
+          hostConn.send({ type: "set-nickname", nickname: myNickname });
+        });
+        hostConn.on("error", (err) => {
+          alert("连接房主失败，请检查房间号或房主是否在线");
+          console.error(err);
+        });
+      });
+    }
+
+    function sendMyMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      userInput.value = "";
+      userInput.style.height = "auto";
+
+      if (isHost) {
+        // 房主自己发言
+        displayMessage("user", text);
+        // 广播给所有访客（带上房主昵称）
+        broadcastToAll({ type: "chat-message", text, sender: myNickname });
+        // 触发 AI（上下文格式只保留纯文本，因为房主昵称不需要）
+        callAIAndBroadcast(`${myNickname}: ${text}`);
+      } else {
+        // 访客发送给房主
+        if (hostConn && hostConn.open) {
+          displayMessage("user", text);
+          hostConn.send({ type: "chat-message", text, nickname: myNickname });
+        } else {
+          alert("未连接到房主");
+        }
+      }
+    }
+
+    function handleKey(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMyMessage();
+      }
+    }
+
+    userInput.addEventListener("input", () => {
+      userInput.style.height = "auto";
+      userInput.style.height = Math.min(userInput.scrollHeight, 120) + "px";
+    });
+
+    // 自动从 URL 加入房间
+    window.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      const roomFromUrl = params.get("room");
+      if (roomFromUrl) {
+        document.getElementById("joinRoomIdInput").value = roomFromUrl;
+        joinRoom();
+      }
+    });
+
+    // 获取分享链接
+    function getShareLink() {
+      if (!roomId) return "";
+      return window.location.origin + window.location.pathname + "?room=" + roomId;
+    }
+
+    roomDisplay.addEventListener("click", () => {
+      if (isHost && roomId) {
+        const link = getShareLink();
+        navigator.clipboard.writeText(link).then(() => {
+          alert("邀请链接已复制！\n" + link);
+        }).catch(() => {
+          prompt("复制此链接分享给好友：", link);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
