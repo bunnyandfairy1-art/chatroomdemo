@@ -73,8 +73,9 @@
       display: inline-flex; align-items: center; gap: 3px;
       background: #f0f0f0; padding: 3px 10px; border-radius: 20px;
       font-size: 12px; font-weight: 600;
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .online-bar .tag.offline { opacity: 0.4; }
+    .online-bar .tag.offline { opacity: 0.4; transform: scale(0.95); }
     .online-bar .dot { width: 7px; height: 7px; border-radius: 50%; }
     .online-bar .dot.on { background: var(--duo-green); }
     .online-bar .dot.off { background: #ddd; }
@@ -92,7 +93,7 @@
       -webkit-overflow-scrolling: touch;
       background: var(--duo-bg);
     }
-    .msg { display: flex; gap: 10px; align-items: flex-start; max-width: 82%; animation: popIn 0.25s cubic-bezier(0.18,0.89,0.32,1.28); }
+    .msg { display: flex; gap: 10px; align-items: flex-start; max-width: 82%; }
     .msg.self { align-self: flex-end; flex-direction: row-reverse; }
     .msg.ai { align-self: flex-start; }
     .msg.other { align-self: flex-start; }
@@ -154,6 +155,7 @@
       border-radius: 12px; padding: 12px 16px;
       text-align: center; font-size: 14px; font-weight: 700;
       align-self: center; margin: 6px 0;
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
     .banner.warn { background: #fff3cd; border: 2px solid #ffc107; color: #856404; }
     .banner.end { background: #ffe5e5; border: 2px solid var(--duo-red); color: var(--duo-red); }
@@ -189,25 +191,6 @@
     }
     .input-area .send-btn:disabled { background: #e5e5e5; box-shadow: 0 3px 0 #ccc; color: #aaa; }
     .input-area .emoji-btn { background: var(--duo-yellow); box-shadow: 0 3px 0 #d4a800; }
-    .input-area .mic-btn { background: #ff6b6b; box-shadow: 0 3px 0 #d63031; color: white; font-size: 16px; }
-    .input-area .mic-btn.recording { animation: mic-pulse 0.8s infinite; }
-    @keyframes mic-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
-    .voice-recording-hint {
-      position: absolute; top: -44px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.75); color: white; padding: 6px 14px; border-radius: 20px;
-      font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none;
-    }
-    .voice-msg {
-      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
-      background: #f0f0f0; border-radius: 12px; cursor: pointer; min-width: 120px;
-      touch-action: manipulation; user-select: none;
-    }
-    .voice-msg.playing .voice-icon { animation: voice-wave 1s infinite; }
-    @keyframes voice-wave { 0%{opacity:1} 50%{opacity:0.3} 100%{opacity:1} }
-    .voice-msg .voice-icon { font-size: 16px; }
-    .voice-msg .voice-dur { font-size: 12px; color: #666; }
-    .voice-transcript { font-size: 13px; color: #555; margin-top: 4px; line-height: 1.4; word-break: break-all; }
-    .msg.self .voice-transcript { color: rgba(255,255,255,0.85); }
     .input-area .attach-btn { background: #a29bfe; box-shadow: 0 3px 0 #6c5ce7; color: white; font-size: 16px; }
     .chat-img { max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer; display: block; }
     .chat-img:active { opacity: 0.8; }
@@ -263,64 +246,45 @@
     .card .note { margin-top: 12px; font-size: 12px; color: var(--duo-text-light); }
     .card .note a { color: var(--duo-blue); font-weight: 700; text-decoration: none; }
 
-    /* Mode selector grid */
-    .mode-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
-      margin-bottom: 12px; text-align: left;
-    }
-    .mode-card {
-      padding: 10px; border-radius: 12px; cursor: pointer;
-      border: 2px solid var(--duo-border); transition: all 0.2s;
-      display: flex; flex-direction: column; gap: 2px;
-      touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none;
-    }
-    .mode-card:active { transform: scale(0.97); }
-    .mode-card.selected { border-color: var(--duo-green); background: var(--duo-green-light); }
-    .mode-card .mode-icon, .mode-card .mode-name, .mode-card .mode-desc { pointer-events: none; }
-    .mode-card .mode-icon { font-size: 16px; }
-    .mode-card .mode-name { font-size: 12px; font-weight: 800; color: var(--duo-text); }
-    .mode-card .mode-desc { font-size: 10px; color: var(--duo-text-light); line-height: 1.3; }
-    .mode-card-empty {
-      grid-column: span 2; padding: 10px; border-radius: 12px; cursor: pointer;
-      border: 2px dashed var(--duo-border); transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none;
-    }
-    .mode-card-empty:active { transform: scale(0.97); }
-    .mode-card-empty.selected { border-color: var(--duo-green); background: var(--duo-green-light); border-style: solid; }
-    .mode-card-empty .mode-icon, .mode-card-empty .mode-name, .mode-card-empty .mode-desc { pointer-events: none; }
-    .mode-card-empty .mode-icon { font-size: 16px; }
-    .mode-card-empty .mode-name { font-size: 12px; font-weight: 800; color: var(--duo-text); }
-    .mode-card-empty .mode-desc { font-size: 11px; color: var(--duo-text-light); }
-
     /* ===== Setup screen ===== */
     .setup-screen {
       display: flex; flex-direction: column; align-items: center;
-      justify-content: center; height: 100%; padding: 24px; text-align: center;
+      justify-content: center; height: 100%; padding: 20px; text-align: center;
+      overflow-y: auto;
     }
-    .setup-screen .mascot { margin-bottom: 16px; }
-    .setup-screen h2 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
-    .setup-screen .desc { color: var(--duo-text-light); font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
-    .setup-screen .actions { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 300px; }
-    .setup-screen .btn-big {
-      padding: 14px 30px; border-radius: 14px; font-size: 17px;
-      border: none; cursor: pointer; font-weight: 800;
-      box-shadow: 0 4px 0 var(--duo-green-dark);
-      transition: transform 0.1s;
+    .setup-screen .mascot { margin-bottom: 12px; animation: slideUp 0.3s ease both; }
+    .setup-screen h2 { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+    .setup-screen .desc { color: var(--duo-text-light); font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
+    .setup-screen .room-options { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
+    .room-card {
+      background: var(--duo-card); border: 2px solid var(--duo-border);
+      border-radius: 16px; padding: 16px; text-align: left;
+      cursor: pointer; display: flex; gap: 12px; align-items: center;
+      box-shadow: 0 4px 0 var(--duo-border);
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, border-color 0.15s ease;
+      animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
-    .setup-screen .btn-big:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--duo-green-dark); }
-    .setup-screen .btn-create { background: var(--duo-green); color: white; }
-    .setup-screen .join-row { display: flex; gap: 8px; }
+    .room-card:nth-child(1) { animation-delay: 0.1s; }
+    .room-card:nth-child(2) { animation-delay: 0.2s; }
+    .room-card:hover { border-color: var(--duo-green); box-shadow: 0 4px 0 var(--duo-green); }
+    .room-card:active { transform: translateY(4px) scale(0.98); box-shadow: 0 0px 0 var(--duo-green); }
+    .room-card .rc-icon { font-size: 28px; flex-shrink: 0; }
+    .room-card .rc-info { flex: 1; }
+    .room-card .rc-title { font-size: 15px; font-weight: 800; color: var(--duo-text); margin-bottom: 2px; }
+    .room-card .rc-desc { font-size: 12px; color: var(--duo-text-light); line-height: 1.4; }
+    .setup-screen .divider { font-size: 12px; color: #ccc; margin: 4px 0; }
+    .setup-screen .join-section { width: 100%; max-width: 320px; margin-top: 8px; }
+    .setup-screen .join-row { display: flex; gap: 8px; margin-bottom: 8px; }
     .setup-screen .join-row input {
-      flex: 1; padding: 12px; border-radius: 12px;
+      flex: 1; padding: 11px; border-radius: 12px;
       border: 2px solid var(--duo-border); text-align: center;
-      font-size: 15px; outline: none;
+      font-size: 14px; outline: none;
     }
     .setup-screen .join-row input:focus { border-color: var(--duo-blue); }
     .setup-screen .join-row button {
-      padding: 12px 20px; border-radius: 12px;
+      padding: 11px 16px; border-radius: 12px;
       background: var(--duo-blue); color: white; border: none;
-      font-size: 15px; font-weight: 700; cursor: pointer;
+      font-size: 14px; font-weight: 700; cursor: pointer;
       box-shadow: 0 3px 0 var(--duo-blue-dark);
     }
     .setup-screen .join-row button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--duo-blue-dark); }
@@ -386,20 +350,71 @@
     }
     @keyframes wag { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
 
-    .typing-dots::after {
-      content: '...';
-      animation: dots 1.2s steps(4, end) infinite;
+    .typing-dots {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 0;
     }
-    @keyframes dots {
-      0% { content: ''; }
-      25% { content: '.'; }
-      50% { content: '..'; }
-      75% { content: '...'; }
+    .typing-dots .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--duo-green);
+      animation: bounce 1.4s ease-in-out infinite;
+    }
+    .typing-dots .dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-6px); opacity: 1; }
     }
 
     @keyframes popIn {
-      from { opacity: 0; transform: translateY(8px) scale(0.96); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+      0% { opacity: 0; transform: translateY(12px) scale(0.9); }
+      60% { opacity: 1; transform: translateY(-3px) scale(1.02); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes celebrate {
+      0% { transform: scale(1); }
+      25% { transform: scale(1.15) rotate(-2deg); }
+      50% { transform: scale(1.05) rotate(1deg); }
+      75% { transform: scale(1.1) rotate(-1deg); }
+      100% { transform: scale(1); }
+    }
+    @keyframes sparkle {
+      0%, 100% { opacity: 0; transform: scale(0) rotate(0); }
+      50% { opacity: 1; transform: scale(1) rotate(180deg); }
+    }
+
+    /* Duolingo button press effect */
+    .btn-full, .send-btn, .attach-btn, .btn-sm, .room-card button, .join-row button {
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+    }
+    .btn-full:active, .send-btn:active, .attach-btn:active, .btn-sm:active, .room-card button:active, .join-row button:active {
+      transform: scale(0.92) translateY(2px) !important;
+    }
+
+    /* Chat message entrance animation enhanced */
+    .msg {
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    /* Overlay entrance */
+    .overlay .card {
+      animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    /* Header badge pulse on new user */
+    .badge-pulse {
+      animation: celebrate 0.5s ease;
+    }
+
+    /* Success sparkle pseudo-element */
+    .sparkle-effect::after {
+      content: '✨';
+      position: absolute; top: -8px; right: -8px;
+      font-size: 16px;
+      animation: sparkle 0.8s ease forwards;
+      pointer-events: none;
     }
 
     @media(min-width:500px) {
@@ -450,7 +465,6 @@
     <textarea id="userInput" rows="1" placeholder="说点什么吧~ @小柴 可以提问" onkeydown="handleKey(event)"></textarea>
     <div class="btn-row">
       <button class="attach-btn" onclick="document.getElementById('fileInput').click()">+</button>
-      <button class="mic-btn" id="micBtn" ontouchstart="startVoice(event)" ontouchend="stopVoice(event)" onmousedown="startVoice(event)" onmouseup="stopVoice(event)" onmouseleave="cancelVoice()">🔈</button>
       <button class="send-btn" id="sendBtn" onclick="sendMyMessage()">↑</button>
     </div>
     <input type="file" id="fileInput" accept="image/*,.txt,.md,.json,.csv,.pdf,.doc,.docx" style="display:none" onchange="handleFileSelect(event)">
@@ -478,17 +492,36 @@
         </g>
       </svg>
     </div>
-    <h2>小柴群聊室</h2>
-    <p class="desc">创建房间邀请朋友<br>最多10人 · 阅后即焚 · 不留痕迹</p>
-    <div class="actions">
-      <button class="btn-big btn-create" onclick="showCreateDialog()">创建房间</button>
+    <h2>群聊室</h2>
+    <p class="desc">最多10人 · 阅后即焚 · 不留痕迹</p>
+
+    <div class="room-options">
+      <div class="room-card" onclick="showCreateDialog('ai')">
+        <span class="rc-icon">🐕</span>
+        <div class="rc-info">
+          <div class="rc-title">AI 群聊</div>
+          <div class="rc-desc">小柴参与聊天，能回答问题、接话、分析讨论</div>
+        </div>
+      </div>
+      <div class="room-card" onclick="showCreateDialog('empty')">
+        <span class="rc-icon">💬</span>
+        <div class="rc-info">
+          <div class="rc-title">空房间</div>
+          <div class="rc-desc">纯多人聊天，无AI，不需要API Key</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider">— 或者加入已有房间 —</div>
+
+    <div class="join-section">
       <div class="join-row">
         <input type="text" id="joinInput" placeholder="输入房间号">
         <button onclick="joinRoom()">加入</button>
       </div>
-      <div class="join-row" style="margin-top:4px">
+      <div class="join-row">
         <input type="text" id="recoverInput" placeholder="房主密码">
-        <button onclick="recoverHost()" style="background:var(--duo-purple);box-shadow:0 3px 0 #a855c7;">回到聊天</button>
+        <button onclick="recoverHost()" style="background:var(--duo-purple);box-shadow:0 3px 0 #a855c7;">重进房间</button>
       </div>
     </div>
   </div>
@@ -496,49 +529,15 @@
   <!-- Create dialog -->
   <div class="overlay hidden" id="createOverlay">
     <div class="card">
-      <h2>创建房间</h2>
-      <p style="font-size:13px;color:var(--duo-text-light);margin-bottom:4px;">选一个模式</p>
-      <div class="mode-grid" id="modeGrid">
-        <div class="mode-card selected" data-mode="casual" onclick="selectMode(this)">
-          <span class="mode-icon">🐕</span>
-          <span class="mode-name">闲聊陪伴</span>
-          <span class="mode-desc">AI陪聊不冷场</span>
-        </div>
-        <div class="mode-card" data-mode="mediate" onclick="selectMode(this)">
-          <span class="mode-icon">🤝</span>
-          <span class="mode-name">关系调停</span>
-          <span class="mode-desc">AI居中调解分歧</span>
-        </div>
-        <div class="mode-card" data-mode="decide" onclick="selectMode(this)">
-          <span class="mode-icon">⚖️</span>
-          <span class="mode-name">群体决策</span>
-          <span class="mode-desc">AI帮分析利弊</span>
-        </div>
-        <div class="mode-card" data-mode="brainstorm" onclick="selectMode(this)">
-          <span class="mode-icon">🧠</span>
-          <span class="mode-name">头脑风暴</span>
-          <span class="mode-desc">AI激发创意灵感</span>
-        </div>
-        <div class="mode-card" data-mode="debate" onclick="selectMode(this)">
-          <span class="mode-icon">🎭</span>
-          <span class="mode-name">辩论对决</span>
-          <span class="mode-desc">AI当裁判打分</span>
-        </div>
-        <div class="mode-card" data-mode="meeting" onclick="selectMode(this)">
-          <span class="mode-icon">📋</span>
-          <span class="mode-name">会议纪要</span>
-          <span class="mode-desc">AI实时记录总结</span>
-        </div>
-        <div class="mode-card-empty" data-mode="empty" onclick="selectMode(this)">
-          <span class="mode-icon">🔒</span>
-          <span class="mode-name">空房间</span>
-          <span class="mode-desc">纯聊天，无AI</span>
-        </div>
+      <h2 id="createTitle">创建AI群聊</h2>
+      <p id="createDesc" style="font-size:13px;color:var(--duo-text-light);margin-bottom:14px;"></p>
+      <div id="aiFields">
+        <input type="password" id="createApiKey" placeholder="API Key (sk-...)" autocomplete="off">
+        <input type="text" id="createPassword" placeholder="设置密码（6位以上）" maxlength="20">
+        <div class="note" style="margin-bottom:12px;">还没有Key？<a href="https://platform.deepseek.com" target="_blank">去这里免费获取 →</a></div>
       </div>
-      <input type="password" id="createApiKey" placeholder="API Key (sk-...)" autocomplete="off">
-      <input type="text" id="createPassword" placeholder="设置密码（6位以上）" maxlength="20">
       <button class="btn-full" onclick="confirmCreate()">开始聊天！</button>
-      <div class="note">还没有Key？<a href="https://platform.deepseek.com" target="_blank">去这里免费获取 →</a></div>
+      <div class="note" style="margin-top:10px;cursor:pointer;" onclick="document.getElementById('createOverlay').classList.add('hidden');document.getElementById('setupScreen').classList.remove('hidden');">← 返回</div>
     </div>
   </div>
 
@@ -558,7 +557,7 @@
       </svg>
       <h2>聊天结束</h2>
       <p>所有记录已清除<br>下次再聊~</p>
-      <button class="btn-full" onclick="location.reload()">回到首页</button>
+      <button class="btn-full" onclick="backToSetup()">再开一局</button>
     </div>
   </div>
 
@@ -586,91 +585,21 @@ const MODEL = "deepseek-chat";
 const MAX_USERS = 10;
 const HEARTBEAT_INTERVAL = 5000;
 const HEARTBEAT_TIMEOUT = 18000;
-const AI_DEBOUNCE_MS = 800;
+const AI_DEBOUNCE_MS = 1500;
 const EMOJIS = ['😊','😂','🤣','😍','🥰','😘','😜','🤔','😎','🥳','😭','😱','🤯','🙄','😴','🤝','👍','👎','❤️','🔥','💯','🎉','👏','💪','🙏','✨','🌟','💡','🐶','🐕','🦴','🐾'];
 const ANIMALS = ['🐱','🐶','🐰','🦊','🐼','🐨','🐯','🦁','🐸','🐧'];
 
-// ========== MODE CONFIG ==========
-const MODES = {
-  casual: {
-    name: "小柴",
-    title: "闲聊陪伴",
-    prompt: `你是"小柴"，一只活泼可爱的AI柴犬群友。规则：
-1. 简短口语化中文，每条不超50字，偶尔用颜文字或"汪"。
-2. 性格开朗热情，爱凑热闹，像个爱social的小狗。
-3. 中立自然语气，但比普通AI更活泼俏皮。
-4. 看到所有人发言，有记忆，引用上下文时自然带出。
-5. 直接回答提问；闲聊时积极参与但精炼。
-6. 偶尔用狗狗相关的比喻（摇尾巴、闻一闻、汪汪等）。`
-  },
-  mediate: {
-    name: "小柴·调停",
-    title: "关系调停",
-    prompt: `你是"小柴·调停"，一只冷静理性的AI柴犬调解员。规则：
-1. 简短口语化中文，每条不超80字。
-2. 严格中立，不偏袒任何一方。
-3. 核心技能：情绪识别、观点翻译（帮A理解B的真实意思）、逻辑纠偏。
-4. 当双方情绪激动时，先安抚情绪再回到问题本身。
-5. 常用句式："我理解你的感受..."、"对方想表达的可能是..."、"你们的共同点其实是..."
-6. 发现双方有共识时及时点出，推动和解。
-7. 保持温暖但不失专业，偶尔加"汪"缓和气氛。`
-  },
-  decide: {
-    name: "小柴·决策",
-    title: "群体决策",
-    prompt: `你是"小柴·决策"，一只善于分析的AI柴犬参谋。规则：
-1. 简短口语化中文，每条不超80字。
-2. 核心技能：列出选项、分析利弊、推动收敛。
-3. 有人提出新选项时帮忙补充考虑维度。
-4. 当讨论发散太远时提醒聚焦。
-5. 常用句式："目前有几个选项..."、"这个方案的优势是...但要注意..."、"看起来大家倾向于..."
-6. 最终帮忙整理投票或共识，推动做出决定。
-7. 保持中立不替人做决定，只提供分析框架。`
-  },
-  brainstorm: {
-    name: "小柴·灵感",
-    title: "头脑风暴",
-    prompt: `你是"小柴·灵感"，一只脑洞大开的AI柴犬创意伙伴。规则：
-1. 简短口语化中文，每条不超60字。
-2. 核心技能：发散联想、追问深挖、归类整理。
-3. 鼓励任何想法，不评判好坏，先记录再筛选。
-4. 擅长"如果...会怎样"的联想跳跃。
-5. 常用句式："这个想法可以延伸..."、"还有没有更野一点的..."、"我来归类一下目前的点子..."
-6. 定期帮大家整理已有想法，分类归纳。
-7. 热情洋溢，像团队里最有创意的那个人，偶尔加"汪~灵感来了！"`
-  },
-  debate: {
-    name: "小柴·裁判",
-    title: "辩论对决",
-    prompt: `你是"小柴·裁判"，一只严谨公正的AI柴犬辩论裁判。规则：
-1. 简短口语化中文，每条不超80字。
-2. 核心技能：评估论据强度、指出逻辑漏洞、跟踪比分。
-3. 对每个论点评价是否有理有据。
-4. 发现逻辑谬误（稻草人、滑坡、诉诸权威等）要指出。
-5. 常用句式："这个论据很有力..."、"但这里有个逻辑问题..."、"目前双方各自的强项是..."
-6. 最终给出综合评价和胜负判定（可以平局）。
-7. 严肃但不刻板，偶尔加"汪，精彩！"表达欣赏。`
-  },
-  meeting: {
-    name: "小柴·记录",
-    title: "会议纪要",
-    prompt: `你是"小柴·记录"，一只高效专注的AI柴犬记录员。规则：
-1. 简短口语化中文，每条不超60字。
-2. 核心技能：实时提炼要点、标记待办、生成纪要。
-3. 少说多记，不打断讨论节奏。
-4. 每隔5-6条消息主动整理一次"当前要点"。
-5. 常用句式："记下了：..."、"这是一个待办项..."、"目前讨论的要点是..."
-6. 有人跑题时温柔提醒回到主题。
-7. 会议结束时自动输出完整纪要摘要。偶尔加"汪，记好了！"`
-  },
-  empty: {
-    name: "",
-    title: "空房间",
-    noAI: true,
-    prompt: ""
-  }
-};
-let currentMode = "casual";
+// ========== AI CONFIG ==========
+const AI_NAME = "小柴";
+const AI_PROMPT = `你是"小柴"，一个群聊里的AI助手。你的任务是根据聊天内容自然地参与对话。
+
+要求：
+- 像一个聪明、有见识的朋友一样说话，自然口语化
+- 根据聊天内容灵活应对：闲聊时轻松幽默，讨论问题时给出有深度的分析，需要帮忙时认真帮忙
+- 回复简洁有力，通常1-3句话，除非对方在问复杂问题需要详细回答
+- 不要刻意卖萌或角色扮演，就像正常人聊天一样
+- 有自己的观点和判断，不要只是附和
+- 看到所有人的发言，有上下文记忆，回复要连贯`;
 
 const DOG_SVG_SMALL = `<svg class="dog-avatar dog-bounce" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <circle cx="50" cy="52" r="38" fill="#f5d38a"/>
@@ -699,10 +628,10 @@ let reconnectCount = 0, maxReconnect = 5;
 let aiDebounceTimer = null, pendingAiText = "";
 let messagesHistory = [{
   role: "system",
-  content: MODES.casual.prompt
+  content: AI_PROMPT
 }];
 
-// ========== AUDIO ==========
+// ========== AUDIO (Duolingo-style) ==========
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function resumeAudio() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -710,18 +639,79 @@ function resumeAudio() {
 document.addEventListener('click', resumeAudio, { once: true });
 document.addEventListener('touchstart', resumeAudio, { once: true });
 
-function playJoinSound() {
+function playTone(freq, duration, type, vol) {
   try {
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     o.connect(g); g.connect(audioCtx.destination);
-    o.type = 'sine'; o.frequency.setValueAtTime(660, audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(990, audioCtx.currentTime + 0.08);
-    o.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.16);
-    g.gain.setValueAtTime(0.25, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-    o.start(); o.stop(audioCtx.currentTime + 0.35);
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    g.gain.setValueAtTime(vol || 0.2, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    o.start(); o.stop(audioCtx.currentTime + duration);
   } catch(e) {}
+}
+
+function playJoinSound() {
+  // Ascending cheerful ding-ding-ding
+  try {
+    const t = audioCtx.currentTime;
+    [660, 880, 1100].forEach((f, i) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f, t + i * 0.08);
+      g.gain.setValueAtTime(0.2, t + i * 0.08);
+      g.gain.exponentialRampToValueAtTime(0.01, t + i * 0.08 + 0.15);
+      o.start(t + i * 0.08); o.stop(t + i * 0.08 + 0.15);
+    });
+  } catch(e) {}
+}
+
+function playSendSound() {
+  // Quick pop - short high frequency burst
+  playTone(1200, 0.08, 'sine', 0.15);
+}
+
+function playReceiveSound() {
+  // Soft ding
+  playTone(880, 0.12, 'sine', 0.12);
+}
+
+function playAIDoneSound() {
+  // Duolingo correct answer: two-note ascending chime
+  try {
+    const t = audioCtx.currentTime;
+    const o1 = audioCtx.createOscillator(); const g1 = audioCtx.createGain();
+    o1.connect(g1); g1.connect(audioCtx.destination);
+    o1.type = 'sine'; o1.frequency.setValueAtTime(880, t);
+    g1.gain.setValueAtTime(0.2, t); g1.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+    o1.start(t); o1.stop(t + 0.2);
+    const o2 = audioCtx.createOscillator(); const g2 = audioCtx.createGain();
+    o2.connect(g2); g2.connect(audioCtx.destination);
+    o2.type = 'sine'; o2.frequency.setValueAtTime(1320, t + 0.12);
+    g2.gain.setValueAtTime(0.25, t + 0.12); g2.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+    o2.start(t + 0.12); o2.stop(t + 0.4);
+  } catch(e) {}
+}
+
+function playEndSound() {
+  // Descending soft tone
+  try {
+    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type = 'sine'; o.frequency.setValueAtTime(660, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(330, audioCtx.currentTime + 0.4);
+    g.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+    o.start(); o.stop(audioCtx.currentTime + 0.5);
+  } catch(e) {}
+}
+
+function playClickSound() {
+  // Tiny tap
+  playTone(600, 0.04, 'square', 0.08);
 }
 
 // ========== SESSION STORAGE ==========
@@ -751,7 +741,7 @@ function displayMsg(type, text, name, avatar, msgId) {
   const div = document.createElement("div");
   div.className = `msg ${type}`;
   if (msgId) div.dataset.msgId = msgId;
-  const nm = name || (type==='ai'? MODES[currentMode].name:'');
+  const nm = name || (type==='ai'? AI_NAME:'');
   const processedText = processAtMentions(escapeHtml(text));
 
   if (type === 'self') {
@@ -819,8 +809,7 @@ function disableInput(msg) {
 }
 function enableInput() {
   userInput.disabled = false;
-  const mode = MODES[currentMode];
-  userInput.placeholder = mode.noAI ? "说点什么吧~" : `说点什么吧~ @${mode.name} 可以提问`;
+  userInput.placeholder = hostApiKey ? `说点什么吧~ @${AI_NAME} 可以提问` : "说点什么吧~";
   document.getElementById("sendBtn").disabled = false;
 }
 
@@ -868,32 +857,10 @@ function copyInvite() {
 
 // AI mute
 function toggleMute() {
-  if (MODES[currentMode].noAI) return;
   aiMuted = !aiMuted;
   document.getElementById("muteBtn").textContent = aiMuted ? '🔇' : '🔊';
   if (isHost) broadcastToAll({ type: "ai-mute-state", muted: aiMuted });
-  displayNotice(aiMuted ? `${MODES[currentMode].name}去睡觉了 💤` : `${MODES[currentMode].name}回来了 🐕`);
-}
-
-// Mode selection
-function selectMode(el) {
-  if (!el || !el.getAttribute('data-mode')) {
-    el = el.closest('.mode-card, .mode-card-empty');
-    if (!el) return;
-  }
-  document.querySelectorAll('.mode-card, .mode-card-empty').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  currentMode = el.getAttribute('data-mode');
-  // 空房间模式隐藏API Key输入框
-  const apiInput = document.getElementById("createApiKey");
-  const apiNote = apiInput.parentElement.querySelector('.note');
-  if (MODES[currentMode].noAI) {
-    apiInput.style.display = "none";
-    if (apiNote) apiNote.style.display = "none";
-  } else {
-    apiInput.style.display = "";
-    if (apiNote) apiNote.style.display = "";
-  }
+  displayNotice(aiMuted ? `${AI_NAME}去睡觉了` : `${AI_NAME}回来了`);
 }
 
 function getShareLink() {
@@ -961,6 +928,8 @@ function initPeer(id) {
       updateOnlineBar();
       // 更新URL，让微信分享时自动带上房间号
       history.replaceState(null, '', location.pathname + '?room=' + pid);
+      // 友好引导
+      displayNotice("点击顶部「+邀请」把房间分享给好友");
     }
   });
 
@@ -1010,7 +979,6 @@ function hostHandleData(conn, data) {
       conn.send({ type: "identity", nickname: existing.name, avatar });
       conn.send({ type: "participants", list: participants });
       conn.send({ type: "ai-mute-state", muted: aiMuted });
-      conn.send({ type: "mode-info", mode: currentMode, modeName: MODES[currentMode].name, modeTitle: MODES[currentMode].title });
       syncHistoryTo(conn);
 
       broadcastParticipants();
@@ -1025,7 +993,6 @@ function hostHandleData(conn, data) {
       conn.send({ type: "identity", nickname, avatar });
       conn.send({ type: "participants", list: participants });
       conn.send({ type: "ai-mute-state", muted: aiMuted });
-      conn.send({ type: "mode-info", mode: currentMode, modeName: MODES[currentMode].name, modeTitle: MODES[currentMode].title });
       syncHistoryTo(conn);
 
       broadcastToAll({ type: "user-joined", name: nickname, avatar, id: conn.peer }, conn);
@@ -1045,18 +1012,9 @@ function hostHandleData(conn, data) {
     conn.send({ type: "msg-ack", msgId: mid, status: "ok" });
     broadcastToAll({ type: "chat-message", text: data.text, sender, avatar, msgId: mid }, conn);
     displayMsg("other", data.text, sender, avatar);
+    playReceiveSound();
 
     if (!aiMuted) triggerAIDebounced(`${sender}: ${data.text}`);
-
-  } else if (data.type === "voice-message") {
-    const sender = conn.guestInfo?.name || "访客";
-    const avatar = conn.guestInfo?.avatar || "👤";
-    const mid = data.msgId;
-    const transcript = data.transcript || "";
-    conn.send({ type: "msg-ack", msgId: mid, status: "ok" });
-    broadcastToAll({ type: "voice-message", audio: data.audio, duration: data.duration, sender, avatar, transcript }, conn);
-    displayVoiceMsg("other", data.audio, data.duration, sender, avatar, null, transcript);
-    if (!aiMuted && transcript) triggerAIDebounced(`${sender}(语音): ${transcript}`);
 
   } else if (data.type === "image-message") {
     const sender = conn.guestInfo?.name || "访客";
@@ -1065,7 +1023,7 @@ function hostHandleData(conn, data) {
     conn.send({ type: "msg-ack", msgId: mid, status: "ok" });
     broadcastToAll({ type: "image-message", image: data.image, sender, avatar }, conn);
     displayImageMsg("other", data.image, sender, avatar);
-    if (!aiMuted && !MODES[currentMode].noAI) triggerAIDebounced(`${sender}: [发了一张图片]`);
+    if (!aiMuted) triggerAIDebounced(`${sender}: [发了一张图片]`);
 
   } else if (data.type === "file-message") {
     const sender = conn.guestInfo?.name || "访客";
@@ -1074,7 +1032,7 @@ function hostHandleData(conn, data) {
     conn.send({ type: "msg-ack", msgId: mid, status: "ok" });
     broadcastToAll({ type: "file-message", fileName: data.fileName, sizeText: data.sizeText, sender, avatar }, conn);
     displayFileMsg("other", data.fileName, data.sizeText, sender, avatar);
-    if (!aiMuted && !MODES[currentMode].noAI && data.fileData) {
+    if (!aiMuted && data.fileData) {
       try {
         const textContent = atob(data.fileData.split(',')[1]);
         const preview = textContent.substring(0, 2000);
@@ -1087,15 +1045,23 @@ function hostHandleData(conn, data) {
   } else if (data.type === "msg-ack") {
     confirmMsgStatus(data.msgId, data.status);
   } else if (data.type === "request-end") {
-    // 任何人都可以结束房间
+    // 被访客结束：房主也属于被结束方
     if (!roomEnded) {
+      playEndSound();
       roomEnded = true;
-      broadcastToAll({ type: "room-end-notice" });
+      // 通知其他访客（被动方看"对方和你说白白了"）
+      broadcastToAll({ type: "room-end-notice" }, conn);
+      // 告诉发起者本人（主动方看"所有记录已清除"）
+      conn.send({ type: "room-end-self" });
       clearCache();
       localStorage.removeItem("host_rooms");
+      chatBox.innerHTML = "";
       disableInput("已结束");
       document.getElementById("endBtn").classList.add("hidden");
-      showBanner("聊天结束啦~ 记录已清除", "end");
+      const overlay = document.getElementById("endedOverlay");
+      const desc = overlay.querySelector("p");
+      if (desc) desc.innerHTML = "对方和你说白白了<br>下次再聊～";
+      overlay.classList.remove("hidden");
       setTimeout(() => { connections.forEach(c => { try{c.close();}catch(e){} }); connections = []; }, 1000);
     }
   }
@@ -1135,24 +1101,33 @@ function broadcastToAll(data, exclude) {
 }
 function broadcastParticipants() { broadcastToAll({ type: "participants", list: participants }); }
 
-// AI debounce
+// AI debounce - 多人在线时等大家说完再回，单人时立即回复
 function triggerAIDebounced(text) {
   pendingAiText += "\n" + text;
   clearTimeout(aiDebounceTimer);
-  aiDebounceTimer = setTimeout(() => {
+  const onlineCount = participants.filter(p => p.online).length;
+  if (onlineCount <= 2) {
+    // 只有1-2人在线（含房主），不等直接回
     const combined = pendingAiText.trim();
     pendingAiText = "";
     if (combined) callAI(combined);
-  }, AI_DEBOUNCE_MS);
+  } else {
+    // 多人在线，等大家说完
+    aiDebounceTimer = setTimeout(() => {
+      const combined = pendingAiText.trim();
+      pendingAiText = "";
+      if (combined) callAI(combined);
+    }, AI_DEBOUNCE_MS);
+  }
 }
 
 async function callAI(userText) {
-  if (!hostApiKey || roomEnded || aiMuted || MODES[currentMode].noAI) return;
+  if (!hostApiKey || roomEnded || aiMuted) return;
   messagesHistory.push({ role: "user", content: userText });
 
-  const aiDiv = displayMsg("ai", "思考中", MODES[currentMode].name, "🐕");
+  const aiDiv = displayMsg("ai", "", AI_NAME, "🐕");
   const aiText = aiDiv.querySelector(".ai-text");
-  if (aiText) aiText.classList.add("typing-dots");
+  if (aiText) { aiText.innerHTML = '<span class="typing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>'; }
   broadcastToAll({ type: "ai-loading" });
 
   try {
@@ -1165,7 +1140,7 @@ async function callAI(userText) {
 
     const reader = resp.body.getReader(), decoder = new TextDecoder();
     let full = "";
-    if (aiText) { aiText.textContent = ""; aiText.classList.remove("typing-dots"); }
+    if (aiText) { aiText.innerHTML = ""; }
     broadcastToAll({ type: "ai-start" });
 
     while (true) {
@@ -1182,19 +1157,18 @@ async function callAI(userText) {
       }
     }
 
-    if (full) { messagesHistory.push({ role: "assistant", content: full }); broadcastToAll({ type: "ai-end", fullContent: full }); }
+    if (full) { messagesHistory.push({ role: "assistant", content: full }); broadcastToAll({ type: "ai-end", fullContent: full }); playAIDoneSound(); }
     else { if (aiText) aiText.textContent = "（打了个哈欠）"; }
     saveCache();
   } catch(e) {
-    if (aiText) { aiText.classList.remove("typing-dots"); aiText.textContent = "汪...出错了：" + e.message; aiText.style.color = "var(--duo-red)"; }
+    if (aiText) { aiText.innerHTML = ""; aiText.textContent = "出错了：" + e.message; aiText.style.color = "var(--duo-red)"; }
     broadcastToAll({ type: "ai-error", error: e.message });
   }
 }
 
 async function aiGreetNewUser(nickname) {
-  if (!hostApiKey || roomEnded || MODES[currentMode].noAI) return;
-  const mode = MODES[currentMode];
-  const prompt = `新朋友「${nickname}」刚加入群聊。用你${mode.name}的风格简短打个招呼欢迎对方。25字以内，自然口语，可以带个颜文字或"汪"。`;
+  if (!hostApiKey || roomEnded) return;
+  const prompt = `新朋友「${nickname}」刚加入群聊，简短打个招呼欢迎一下，一句话就行。`;
   try {
     const resp = await fetch(API_URL, {
       method: "POST",
@@ -1205,7 +1179,7 @@ async function aiGreetNewUser(nickname) {
     const data = await resp.json();
     const reply = data.choices?.[0]?.message?.content?.trim();
     if (reply) {
-      displayMsg("ai", reply, mode.name, "🐕");
+      displayMsg("ai", reply, AI_NAME, "🐕");
       messagesHistory.push({ role: "assistant", content: reply });
       broadcastToAll({ type: "ai-end", fullContent: reply });
       saveCache();
@@ -1220,7 +1194,7 @@ function guestHandleData(data) {
 
   switch(data.type) {
     case "room-ended": showEnded(); break;
-    case "room-full": alert("房间满了（最多10人）~"); location.reload(); break;
+    case "room-full": alert("房间满了（最多10人）~"); backToSetup(); break;
     case "identity": myName = data.nickname; myAvatar = data.avatar; document.getElementById("endBtn").classList.remove("hidden"); break;
     case "participants": participants = data.list; updateOnlineBar(); break;
     case "user-joined":
@@ -1232,22 +1206,9 @@ function guestHandleData(data) {
       aiMuted = data.muted;
       document.getElementById("muteBtn").textContent = aiMuted ? '🔇' : '🔊';
       break;
-    case "mode-info":
-      currentMode = data.mode;
-      if (MODES[currentMode].noAI) {
-        document.querySelector(".header .title").textContent = "空房间";
-        document.getElementById("muteBtn").classList.add("hidden");
-      } else {
-        document.querySelector(".header .title").textContent = `${data.modeName} · ${data.modeTitle}`;
-        document.getElementById("muteBtn").classList.remove("hidden");
-      }
-      enableInput();
-      break;
     case "chat-message":
       displayMsg("other", data.text, data.sender, data.avatar);
-      break;
-    case "voice-message":
-      displayVoiceMsg("other", data.audio, data.duration, data.sender, data.avatar, null, data.transcript || "");
+      playReceiveSound();
       break;
     case "image-message":
       displayImageMsg("other", data.image, data.sender, data.avatar);
@@ -1256,13 +1217,13 @@ function guestHandleData(data) {
       displayFileMsg("other", data.fileName, data.sizeText, data.sender, data.avatar);
       break;
     case "ai-loading":
-      const ld = displayMsg("ai", "思考中", MODES[currentMode].name, "🐕");
+      const ld = displayMsg("ai", "", AI_NAME, "🐕");
       const ldText = ld.querySelector(".ai-text");
-      if (ldText) ldText.classList.add("typing-dots");
+      if (ldText) ldText.innerHTML = '<span class="typing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
       break;
     case "ai-start":
       const last = chatBox.querySelector(".msg.ai:last-child");
-      if (last) { const t = last.querySelector(".ai-text"); if(t) { t.textContent = ""; t.classList.remove("typing-dots"); } }
+      if (last) { const t = last.querySelector(".ai-text"); if(t) { t.innerHTML = ""; } }
       break;
     case "ai-delta":
       const msgs = chatBox.querySelectorAll(".msg.ai");
@@ -1274,16 +1235,26 @@ function guestHandleData(data) {
       const all = chatBox.querySelectorAll(".msg.ai");
       const fm = all[all.length - 1];
       if (fm) { const t = fm.querySelector(".ai-text"); if(t) { t.textContent = data.fullContent; t.classList.remove("typing-dots"); } }
-      else displayMsg("ai", data.fullContent, MODES[currentMode].name, "🐕");
+      else displayMsg("ai", data.fullContent, AI_NAME, "🐕");
+      playAIDoneSound();
       break;
     case "ai-error":
-      displayMsg("ai", "汪...出错了：" + data.error, MODES[currentMode].name, "🐕");
+      displayMsg("ai", "出错了：" + data.error, AI_NAME, "🐕");
       break;
     case "msg-ack":
       confirmMsgStatus(data.msgId, data.status);
       break;
     case "room-end-notice":
       showEnded();
+      break;
+    case "room-end-self":
+      // 自己发起的结束，看默认文案
+      roomEnded = true;
+      clearCache();
+      chatBox.innerHTML = "";
+      playEndSound();
+      document.getElementById("endedOverlay").classList.remove("hidden");
+      disableInput("已结束");
       break;
   }
   saveCache();
@@ -1292,8 +1263,54 @@ function guestHandleData(data) {
 function showEnded() {
   roomEnded = true;
   clearCache();
-  document.getElementById("endedOverlay").classList.remove("hidden");
+  chatBox.innerHTML = "";
+  playEndSound();
+  const overlay = document.getElementById("endedOverlay");
+  const desc = overlay.querySelector("p");
+  if (desc) desc.innerHTML = "对方和你说白白了<br>下次再聊～";
+  overlay.classList.remove("hidden");
   disableInput("已结束");
+}
+
+function backToSetup() {
+  // Hide overlay and chat UI
+  document.getElementById("endedOverlay").classList.add("hidden");
+  document.getElementById("headerBar").classList.add("hidden");
+  document.getElementById("onlineBar").classList.add("hidden");
+  document.getElementById("inputArea").classList.add("hidden");
+  document.getElementById("connStatus").classList.add("hidden");
+  document.getElementById("endBtn").classList.add("hidden");
+  document.getElementById("muteBtn").classList.remove("hidden");
+  // Reset all state
+  roomEnded = false;
+  roomId = "";
+  isHost = false;
+  connections = [];
+  participants = [];
+  messagesHistory = [];
+  chatBox.innerHTML = "";
+  aiMuted = false;
+  hostConn = null;
+  hostApiKey = null;
+  reconnectCount = 0;
+  chatStarted = false;
+  pendingAiText = "";
+  clearTimeout(aiDebounceTimer);
+  document.getElementById("muteBtn").textContent = "🔊";
+  // Reset overlay text back to default
+  const desc = document.getElementById("endedOverlay").querySelector("p");
+  if (desc) desc.innerHTML = "所有记录已清除<br>下次再聊~";
+  // Clear form inputs
+  document.getElementById("createApiKey").value = "";
+  document.getElementById("createPassword").value = "";
+  document.getElementById("joinInput").value = "";
+  document.getElementById("recoverInput").value = "";
+  // Clean URL
+  history.replaceState(null, '', location.pathname);
+  // Destroy peer
+  if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+  // Show setup
+  document.getElementById("setupScreen").classList.remove("hidden");
 }
 
 // ========== RECONNECT (GUEST) ==========
@@ -1339,36 +1356,47 @@ function guestDisconnected() {
 }
 
 // ========== USER ACTIONS ==========
-function showCreateDialog() {
+let createRoomType = "ai"; // "ai" or "empty"
+
+function showCreateDialog(type) {
+  playClickSound();
+  createRoomType = type || "ai";
   document.getElementById("setupScreen").classList.add("hidden");
   document.getElementById("createOverlay").classList.remove("hidden");
+  if (createRoomType === "empty") {
+    document.getElementById("createTitle").textContent = "创建空房间";
+    document.getElementById("createDesc").textContent = "纯多人聊天，无AI参与";
+    document.getElementById("aiFields").style.display = "none";
+  } else {
+    document.getElementById("createTitle").textContent = "创建AI群聊";
+    document.getElementById("createDesc").textContent = "小柴会参与聊天，需要DeepSeek API Key";
+    document.getElementById("aiFields").style.display = "";
+  }
 }
 
 function confirmCreate() {
+  playClickSound();
+  const noAi = (createRoomType === "empty");
   const key = document.getElementById("createApiKey").value.trim();
   const pwd = document.getElementById("createPassword").value.trim();
-  const mode = MODES[currentMode];
 
-  // 空房间模式不需要API Key和密码
-  if (!mode.noAI) {
+  if (!noAi) {
     if (!key || !key.startsWith("sk-")) { alert("请输入有效的 API Key"); return; }
     if (!pwd || pwd.length < 6) { alert("密码至少6位"); return; }
   }
-  hostApiKey = key || null;
-  roomPassword = pwd || "";
+  hostApiKey = noAi ? null : key;
+  roomPassword = noAi ? "" : pwd;
   isHost = true;
   myName = "房主";
   myAvatar = "👑";
 
-  // Apply selected mode
-  if (mode.noAI) {
+  if (noAi) {
     messagesHistory = [];
-    document.querySelector(".header .title").textContent = "空房间";
+    document.querySelector(".header .title").textContent = "群聊房间";
     document.getElementById("muteBtn").classList.add("hidden");
   } else {
-    messagesHistory = [{ role: "system", content: mode.prompt }];
-    document.querySelector(".header .title").textContent = `${mode.name} · ${mode.title}`;
-    document.getElementById("muteBtn").classList.remove("hidden");
+    messagesHistory = [{ role: "system", content: AI_PROMPT }];
+    document.querySelector(".header .title").textContent = "小柴群聊";
   }
 
   document.getElementById("createOverlay").classList.add("hidden");
@@ -1388,14 +1416,16 @@ function confirmCreate() {
 }
 
 function joinRoom() {
+  playClickSound();
   const rid = document.getElementById("joinInput").value.trim();
   if (!rid) { alert("请输入房间号~"); return; }
   isHost = false;
-  roomId = rid.startsWith("room-") ? rid : rid;
+  roomId = rid;
   myName = "连接中";
   myAvatar = "👤";
   document.getElementById("setupScreen").classList.add("hidden");
   enterChat();
+  disableInput("正在连接...");
   setConnStatus("正在连接房间...", "warn");
   initPeer("guest-" + randomString(8));
 
@@ -1403,6 +1433,7 @@ function joinRoom() {
     hostConn = peer.connect(roomId, { reliable: true });
     hostConn.on("open", () => {
       setConnStatus("连接成功！", "ok");
+      enableInput();
       startHeartbeat(hostConn);
       hostConn.on("data", guestHandleData);
       hostConn.on("close", guestDisconnected);
@@ -1412,10 +1443,10 @@ function joinRoom() {
     hostConn.on("error", (e) => {
       setConnStatus("连接失败", "err");
       alert("无法连接房主，请确认房间号正确且房主在线~");
-      location.reload();
+      backToSetup();
     });
     setTimeout(() => {
-      if (!hostConn?.open && !roomEnded) { alert("连接超时啦~"); location.reload(); }
+      if (!hostConn?.open && !roomEnded) { alert("连接超时啦~"); backToSetup(); }
     }, 15000);
   });
 }
@@ -1435,8 +1466,12 @@ function recoverHost() {
       isHost = true;
       myName = "房主";
       myAvatar = "👑";
+      messagesHistory = hostApiKey ? [{ role: "system", content: AI_PROMPT }] : [];
       document.getElementById("setupScreen").classList.add("hidden");
       enterChat();
+      enableInput();
+      document.querySelector(".header .title").textContent = hostApiKey ? "小柴群聊" : "群聊房间";
+      if (!hostApiKey) document.getElementById("muteBtn").classList.add("hidden");
       document.getElementById("endBtn").classList.remove("hidden");
       setConnStatus("正在回到聊天...", "warn");
       initPeer(rid);
@@ -1462,17 +1497,19 @@ function enterChat() {
 
 function endRoom() {
   if (!confirm("确定要结束吗？所有人的聊天记录都会删除哦~")) return;
+  playEndSound();
   if (isHost) {
     roomEnded = true;
     broadcastToAll({ type: "room-end-notice" });
     clearCache();
     localStorage.removeItem("host_rooms");
+    chatBox.innerHTML = "";
     disableInput("已结束");
     document.getElementById("endBtn").classList.add("hidden");
-    showBanner("聊天结束啦~ 记录已清除", "end");
+    document.getElementById("endedOverlay").classList.remove("hidden");
     setTimeout(() => { connections.forEach(c => { try{c.close();}catch(e){} }); connections = []; }, 1000);
   } else {
-    // 访客请求结束，通知房主
+    // 访客也能结束整个房间
     if (hostConn?.open) hostConn.send({ type: "request-end" });
   }
 }
@@ -1488,6 +1525,7 @@ function sendMyMessage() {
   chatStarted = true;
 
   const mid = "m" + (++msgIdCounter) + "_" + Date.now();
+  playSendSound();
 
   if (isHost) {
     displayMsg("self", text, myName, myAvatar, mid);
@@ -1506,130 +1544,6 @@ function sendMyMessage() {
       alert("连接断了，等一下重连~");
     }
   }
-}
-
-// ========== VOICE MESSAGE ==========
-let mediaRecorder = null, audioChunks = [], voiceStartTime = 0, voiceTimer = null, voiceCancelled = false;
-let speechRecognition = null, voiceTranscript = "";
-
-function startVoice(e) {
-  e.preventDefault();
-  if (roomEnded) return;
-  voiceCancelled = false;
-  voiceTranscript = "";
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-    audioChunks = [];
-    voiceStartTime = Date.now();
-    // 显示录制提示
-    const hint = document.createElement("div");
-    hint.className = "voice-recording-hint";
-    hint.id = "voiceHint";
-    hint.textContent = "松开发送，上滑取消";
-    document.getElementById("inputArea").style.position = "relative";
-    document.getElementById("inputArea").appendChild(hint);
-    document.getElementById("micBtn").classList.add("recording");
-
-    // 启动语音识别
-    try {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SR) {
-        speechRecognition = new SR();
-        speechRecognition.lang = "zh-CN";
-        speechRecognition.continuous = true;
-        speechRecognition.interimResults = true;
-        speechRecognition.onresult = (ev) => {
-          let text = "";
-          for (let i = 0; i < ev.results.length; i++) {
-            text += ev.results[i][0].transcript;
-          }
-          voiceTranscript = text;
-        };
-        speechRecognition.start();
-      }
-    } catch(e) {}
-
-    mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/mp4' });
-    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
-    mediaRecorder.onstop = () => {
-      stream.getTracks().forEach(t => t.stop());
-      // 停止语音识别
-      if (speechRecognition) { try { speechRecognition.stop(); } catch(e){} speechRecognition = null; }
-      if (voiceCancelled || audioChunks.length === 0) return;
-      const dur = Math.round((Date.now() - voiceStartTime) / 1000);
-      if (dur < 1) { displayNotice("说话时间太短"); return; }
-      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result;
-        sendVoiceMsg(base64, dur, voiceTranscript);
-      };
-      reader.readAsDataURL(blob);
-    };
-    mediaRecorder.start();
-
-    // 最长60秒自动停止
-    voiceTimer = setTimeout(() => { stopVoice(); }, 60000);
-  }).catch(() => { alert("无法访问麦克风"); });
-}
-
-function stopVoice(e) {
-  if (e) e.preventDefault();
-  clearTimeout(voiceTimer);
-  const hint = document.getElementById("voiceHint");
-  if (hint) hint.remove();
-  document.getElementById("micBtn").classList.remove("recording");
-  if (speechRecognition) { try { speechRecognition.stop(); } catch(e){} }
-  if (mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-  }
-}
-
-function cancelVoice() {
-  voiceCancelled = true;
-  if (speechRecognition) { try { speechRecognition.abort(); } catch(e){} speechRecognition = null; }
-  stopVoice();
-}
-
-function sendVoiceMsg(base64Data, duration, transcript) {
-  const mid = "m" + (++msgIdCounter) + "_" + Date.now();
-  const text = transcript || "";
-  if (isHost) {
-    displayVoiceMsg("self", base64Data, duration, myName, myAvatar, mid, text);
-    confirmMsgStatus(mid, "ok");
-    broadcastToAll({ type: "voice-message", audio: base64Data, duration, sender: myName, avatar: myAvatar, transcript: text });
-    if (!aiMuted && text) triggerAIDebounced(`${myName}(语音): ${text}`);
-  } else {
-    if (hostConn?.open) {
-      displayVoiceMsg("self", base64Data, duration, myName, myAvatar, mid, text);
-      hostConn.send({ type: "voice-message", audio: base64Data, duration, transcript: text, msgId: mid });
-    }
-  }
-  chatStarted = true;
-}
-
-function displayVoiceMsg(who, audioData, duration, name, avatar, msgId, transcript) {
-  const div = document.createElement("div");
-  div.className = `msg ${who}`;
-  if (msgId) div.dataset.msgId = msgId;
-  const durText = duration + '"';
-  const transcriptHtml = transcript ? `<div class="voice-transcript">${transcript}</div>` : '';
-  if (who === "self") {
-    div.innerHTML = `<div class="bubble"><div class="voice-msg" onclick="playVoice(this)" data-audio="${audioData}"><span class="voice-icon">🔊</span><span class="voice-dur">${durText}</span></div>${transcriptHtml}</div><span class="msg-status">✓</span>`;
-  } else {
-    div.innerHTML = `<span class="avatar">${avatar}</span><div class="bubble"><div class="sender-name">${name}</div><div class="voice-msg" onclick="playVoice(this)" data-audio="${audioData}"><span class="voice-icon">🔊</span><span class="voice-dur">${durText}</span></div>${transcriptHtml}</div>`;
-  }
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-  return div;
-}
-
-function playVoice(el) {
-  document.querySelectorAll('.voice-msg.playing').forEach(v => v.classList.remove('playing'));
-  el.classList.add('playing');
-  const audio = new Audio(el.dataset.audio);
-  audio.onended = () => el.classList.remove('playing');
-  audio.onerror = () => el.classList.remove('playing');
-  audio.play();
 }
 
 // ========== IMAGE & FILE ==========
@@ -1659,7 +1573,7 @@ function sendImageMsg(base64Data, fileName) {
     displayImageMsg("self", base64Data, myName, myAvatar, mid);
     confirmMsgStatus(mid, "ok");
     broadcastToAll({ type: "image-message", image: base64Data, sender: myName, avatar: myAvatar });
-    if (!aiMuted && !MODES[currentMode].noAI) triggerAIDebounced(`${myName}: [发了一张图片]`);
+    if (!aiMuted) triggerAIDebounced(`${myName}: [发了一张图片]`);
   } else {
     if (hostConn?.open) {
       displayImageMsg("self", base64Data, myName, myAvatar, mid);
@@ -1677,7 +1591,7 @@ function sendFileMsg(base64Data, fileName, fileSize, fileType) {
     confirmMsgStatus(mid, "ok");
     broadcastToAll({ type: "file-message", fileName, sizeText, sender: myName, avatar: myAvatar });
     // 文本类文件内容发给AI理解
-    if (!aiMuted && !MODES[currentMode].noAI) {
+    if (!aiMuted) {
       // base64解码获取文件文本内容
       try {
         const textContent = atob(base64Data.split(',')[1]);
@@ -1701,9 +1615,9 @@ function displayImageMsg(who, imgData, name, avatar, msgId) {
   div.className = `msg ${who}`;
   if (msgId) div.dataset.msgId = msgId;
   if (who === "self") {
-    div.innerHTML = `<div class="bubble"><img class="chat-img" src="${imgData}" onclick="window.open(this.src)"></div><span class="msg-status">✓</span>`;
+    div.innerHTML = `<div class="av">${myAvatar}</div><div class="body"><div class="name">${escapeHtml(myName)}</div><div class="bubble"><img class="chat-img" src="${imgData}" onclick="window.open(this.src)"></div><div class="status" data-mid="${msgId||''}">发送中</div></div>`;
   } else {
-    div.innerHTML = `<span class="avatar">${avatar}</span><div class="bubble"><div class="sender-name">${name}</div><img class="chat-img" src="${imgData}" onclick="window.open(this.src)"></div>`;
+    div.innerHTML = `<div class="av">${avatar||'👤'}</div><div class="body"><div class="name">${escapeHtml(name)}</div><div class="bubble"><img class="chat-img" src="${imgData}" onclick="window.open(this.src)"></div></div>`;
   }
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
@@ -1714,11 +1628,11 @@ function displayFileMsg(who, fileName, sizeText, name, avatar, msgId) {
   const div = document.createElement("div");
   div.className = `msg ${who}`;
   if (msgId) div.dataset.msgId = msgId;
-  const bubble = `<div class="file-bubble"><span class="file-icon">📄</span><div><div class="file-name">${fileName}</div><div class="file-size">${sizeText}</div></div></div>`;
+  const bubble = `<div class="file-bubble"><span class="file-icon">📄</span><div><div class="file-name">${escapeHtml(fileName)}</div><div class="file-size">${sizeText}</div></div></div>`;
   if (who === "self") {
-    div.innerHTML = `<div class="bubble">${bubble}</div><span class="msg-status">✓</span>`;
+    div.innerHTML = `<div class="av">${myAvatar}</div><div class="body"><div class="name">${escapeHtml(myName)}</div><div class="bubble">${bubble}</div><div class="status" data-mid="${msgId||''}">发送中</div></div>`;
   } else {
-    div.innerHTML = `<span class="avatar">${avatar}</span><div class="bubble"><div class="sender-name">${name}</div>${bubble}</div>`;
+    div.innerHTML = `<div class="av">${avatar||'👤'}</div><div class="body"><div class="name">${escapeHtml(name)}</div><div class="bubble">${bubble}</div></div>`;
   }
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
@@ -1736,11 +1650,6 @@ userInput.addEventListener("input", () => {
 
 function randomString(n) { return Math.random().toString(36).substring(2, 2+n); }
 
-// ========== MODE GRID EVENT DELEGATION (WeChat compatibility) ==========
-document.getElementById("modeGrid").addEventListener("click", function(e) {
-  const card = e.target.closest('.mode-card, .mode-card-empty');
-  if (card) selectMode(card);
-});
 
 // ========== INIT ==========
 (function init() {
