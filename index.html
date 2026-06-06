@@ -234,6 +234,22 @@
     .card .note { margin-top: 12px; font-size: 12px; color: var(--duo-text-light); }
     .card .note a { color: var(--duo-blue); font-weight: 700; text-decoration: none; }
 
+    /* Mode selector grid */
+    .mode-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+      margin-bottom: 16px; text-align: left;
+    }
+    .mode-card {
+      padding: 12px; border-radius: 12px; cursor: pointer;
+      border: 2px solid var(--duo-border); transition: all 0.2s;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .mode-card:active { transform: scale(0.97); }
+    .mode-card.selected { border-color: var(--duo-green); background: var(--duo-green-light); }
+    .mode-card .mode-icon { font-size: 20px; }
+    .mode-card .mode-name { font-size: 13px; font-weight: 800; color: var(--duo-text); }
+    .mode-card .mode-desc { font-size: 11px; color: var(--duo-text-light); line-height: 1.3; }
+
     /* ===== Setup screen ===== */
     .setup-screen {
       display: flex; flex-direction: column; align-items: center;
@@ -424,8 +440,8 @@
         <button onclick="joinRoom()">加入</button>
       </div>
       <div class="join-row" style="margin-top:4px">
-        <input type="text" id="recoverInput" placeholder="房主密码（恢复）">
-        <button onclick="recoverHost()" style="background:var(--duo-purple);box-shadow:0 3px 0 #a855c7;">恢复</button>
+        <input type="text" id="recoverInput" placeholder="房主密码">
+        <button onclick="recoverHost()" style="background:var(--duo-purple);box-shadow:0 3px 0 #a855c7;">重进房间</button>
       </div>
     </div>
   </div>
@@ -434,7 +450,39 @@
   <div class="overlay hidden" id="createOverlay">
     <div class="card">
       <h2>创建房间</h2>
-      <p>输入你的 DeepSeek API Key<br>设个密码方便下次恢复房主身份</p>
+      <p>选一个聊天模式，AI会对应切换角色~</p>
+      <div class="mode-grid" id="modeGrid">
+        <div class="mode-card selected" data-mode="casual" onclick="selectMode(this)">
+          <span class="mode-icon">🐕</span>
+          <span class="mode-name">闲聊陪伴</span>
+          <span class="mode-desc">活泼群友，陪聊不冷场</span>
+        </div>
+        <div class="mode-card" data-mode="mediate" onclick="selectMode(this)">
+          <span class="mode-icon">🤝</span>
+          <span class="mode-name">关系调停</span>
+          <span class="mode-desc">中立分析，化解分歧</span>
+        </div>
+        <div class="mode-card" data-mode="decide" onclick="selectMode(this)">
+          <span class="mode-icon">⚖️</span>
+          <span class="mode-name">群体决策</span>
+          <span class="mode-desc">列利弊，帮做选择</span>
+        </div>
+        <div class="mode-card" data-mode="brainstorm" onclick="selectMode(this)">
+          <span class="mode-icon">🧠</span>
+          <span class="mode-name">头脑风暴</span>
+          <span class="mode-desc">发散灵感，激发创意</span>
+        </div>
+        <div class="mode-card" data-mode="debate" onclick="selectMode(this)">
+          <span class="mode-icon">🎭</span>
+          <span class="mode-name">辩论对决</span>
+          <span class="mode-desc">当裁判，评论据强度</span>
+        </div>
+        <div class="mode-card" data-mode="meeting" onclick="selectMode(this)">
+          <span class="mode-icon">📋</span>
+          <span class="mode-name">会议纪要</span>
+          <span class="mode-desc">实时记录，生成总结</span>
+        </div>
+      </div>
       <input type="password" id="createApiKey" placeholder="API Key (sk-...)" autocomplete="off">
       <input type="text" id="createPassword" placeholder="设置密码（6位以上）" maxlength="20">
       <button class="btn-full" onclick="confirmCreate()">开始聊天！</button>
@@ -465,9 +513,16 @@
   <!-- Invite panel -->
   <div class="invite-panel" id="invitePanel">
     <span class="close-invite" onclick="toggleInvite()">×</span>
-    <h3>邀请好友一起聊</h3>
-    <div class="link-box" id="inviteLink"></div>
-    <button class="btn-copy" onclick="copyInvite()">复制链接发给好友</button>
+    <h3>邀请好友加入</h3>
+    <div style="text-align:center;margin-bottom:12px;">
+      <div style="font-size:12px;color:var(--duo-text-light);margin-bottom:6px;">房间号</div>
+      <div id="inviteRoomId" style="font-size:22px;font-weight:800;letter-spacing:1px;color:var(--duo-green-dark);background:var(--duo-green-light);padding:10px 16px;border-radius:12px;display:inline-block;user-select:all;"></div>
+    </div>
+    <button class="btn-copy" onclick="copyRoomId()">复制房间号</button>
+    <div style="margin-top:14px;padding:12px;background:#f0f7ff;border-radius:10px;border:2px solid #d0e8ff;">
+      <div style="font-size:13px;font-weight:700;color:var(--duo-blue-dark);margin-bottom:4px;">💡 微信内分享更方便</div>
+      <div style="font-size:12px;color:var(--duo-text-light);line-height:1.5;">点右上角 <b>「···」</b> → <b>「转发给朋友」</b><br>好友打开链接自动进入房间~</div>
+    </div>
   </div>
 
 </div>
@@ -482,6 +537,82 @@ const HEARTBEAT_TIMEOUT = 18000;
 const AI_DEBOUNCE_MS = 800;
 const EMOJIS = ['😊','😂','🤣','😍','🥰','😘','😜','🤔','😎','🥳','😭','😱','🤯','🙄','😴','🤝','👍','👎','❤️','🔥','💯','🎉','👏','💪','🙏','✨','🌟','💡','🐶','🐕','🦴','🐾'];
 const ANIMALS = ['🐱','🐶','🐰','🦊','🐼','🐨','🐯','🦁','🐸','🐧'];
+
+// ========== MODE CONFIG ==========
+const MODES = {
+  casual: {
+    name: "小柴",
+    title: "闲聊陪伴",
+    prompt: `你是"小柴"，一只活泼可爱的AI柴犬群友。规则：
+1. 简短口语化中文，每条不超50字，偶尔用颜文字或"汪"。
+2. 性格开朗热情，爱凑热闹，像个爱social的小狗。
+3. 中立自然语气，但比普通AI更活泼俏皮。
+4. 看到所有人发言，有记忆，引用上下文时自然带出。
+5. 直接回答提问；闲聊时积极参与但精炼。
+6. 偶尔用狗狗相关的比喻（摇尾巴、闻一闻、汪汪等）。`
+  },
+  mediate: {
+    name: "小柴·调停",
+    title: "关系调停",
+    prompt: `你是"小柴·调停"，一只冷静理性的AI柴犬调解员。规则：
+1. 简短口语化中文，每条不超80字。
+2. 严格中立，不偏袒任何一方。
+3. 核心技能：情绪识别、观点翻译（帮A理解B的真实意思）、逻辑纠偏。
+4. 当双方情绪激动时，先安抚情绪再回到问题本身。
+5. 常用句式："我理解你的感受..."、"对方想表达的可能是..."、"你们的共同点其实是..."
+6. 发现双方有共识时及时点出，推动和解。
+7. 保持温暖但不失专业，偶尔加"汪"缓和气氛。`
+  },
+  decide: {
+    name: "小柴·决策",
+    title: "群体决策",
+    prompt: `你是"小柴·决策"，一只善于分析的AI柴犬参谋。规则：
+1. 简短口语化中文，每条不超80字。
+2. 核心技能：列出选项、分析利弊、推动收敛。
+3. 有人提出新选项时帮忙补充考虑维度。
+4. 当讨论发散太远时提醒聚焦。
+5. 常用句式："目前有几个选项..."、"这个方案的优势是...但要注意..."、"看起来大家倾向于..."
+6. 最终帮忙整理投票或共识，推动做出决定。
+7. 保持中立不替人做决定，只提供分析框架。`
+  },
+  brainstorm: {
+    name: "小柴·灵感",
+    title: "头脑风暴",
+    prompt: `你是"小柴·灵感"，一只脑洞大开的AI柴犬创意伙伴。规则：
+1. 简短口语化中文，每条不超60字。
+2. 核心技能：发散联想、追问深挖、归类整理。
+3. 鼓励任何想法，不评判好坏，先记录再筛选。
+4. 擅长"如果...会怎样"的联想跳跃。
+5. 常用句式："这个想法可以延伸..."、"还有没有更野一点的..."、"我来归类一下目前的点子..."
+6. 定期帮大家整理已有想法，分类归纳。
+7. 热情洋溢，像团队里最有创意的那个人，偶尔加"汪~灵感来了！"`
+  },
+  debate: {
+    name: "小柴·裁判",
+    title: "辩论对决",
+    prompt: `你是"小柴·裁判"，一只严谨公正的AI柴犬辩论裁判。规则：
+1. 简短口语化中文，每条不超80字。
+2. 核心技能：评估论据强度、指出逻辑漏洞、跟踪比分。
+3. 对每个论点评价是否有理有据。
+4. 发现逻辑谬误（稻草人、滑坡、诉诸权威等）要指出。
+5. 常用句式："这个论据很有力..."、"但这里有个逻辑问题..."、"目前双方各自的强项是..."
+6. 最终给出综合评价和胜负判定（可以平局）。
+7. 严肃但不刻板，偶尔加"汪，精彩！"表达欣赏。`
+  },
+  meeting: {
+    name: "小柴·记录",
+    title: "会议纪要",
+    prompt: `你是"小柴·记录"，一只高效专注的AI柴犬记录员。规则：
+1. 简短口语化中文，每条不超60字。
+2. 核心技能：实时提炼要点、标记待办、生成纪要。
+3. 少说多记，不打断讨论节奏。
+4. 每隔5-6条消息主动整理一次"当前要点"。
+5. 常用句式："记下了：..."、"这是一个待办项..."、"目前讨论的要点是..."
+6. 有人跑题时温柔提醒回到主题。
+7. 会议结束时自动输出完整纪要摘要。偶尔加"汪，记好了！"`
+  }
+};
+let currentMode = "casual";
 
 const DOG_SVG_SMALL = `<svg class="dog-avatar dog-bounce" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <circle cx="50" cy="52" r="38" fill="#f5d38a"/>
@@ -501,7 +632,7 @@ const DOG_SVG_SMALL = `<svg class="dog-avatar dog-bounce" viewBox="0 0 100 100" 
 let peer = null, connections = [], hostConn = null;
 let isHost = false, roomId = null, roomEnded = false, roomPassword = "";
 let myName = "", myAvatar = "", hostApiKey = null;
-let aiMuted = false, avatarIdx = 0;
+let aiMuted = false, avatarIdx = 0, inviteAutoShown = false, chatStarted = false;
 let participants = [];
 let msgQueue = [];
 let msgIdCounter = 0;
@@ -510,13 +641,7 @@ let reconnectCount = 0, maxReconnect = 5;
 let aiDebounceTimer = null, pendingAiText = "";
 let messagesHistory = [{
   role: "system",
-  content: `你是"小柴"，一只活泼可爱的AI柴犬群友。规则：
-1. 简短口语化中文，每条不超50字，偶尔用颜文字或"汪"。
-2. 性格开朗热情，爱凑热闹，像个爱social的小狗。
-3. 中立自然语气，但比普通AI更活泼俏皮。
-4. 看到所有人发言，有记忆，引用上下文时自然带出。
-5. 直接回答提问；闲聊时积极参与但精炼。
-6. 偶尔用狗狗相关的比喻（摇尾巴、闻一闻、汪汪等）。`
+  content: MODES.casual.prompt
 }];
 
 // ========== AUDIO ==========
@@ -568,7 +693,7 @@ function displayMsg(type, text, name, avatar, msgId) {
   const div = document.createElement("div");
   div.className = `msg ${type}`;
   if (msgId) div.dataset.msgId = msgId;
-  const nm = name || (type==='ai'? '小柴':'');
+  const nm = name || (type==='ai'? MODES[currentMode].name:'');
   const processedText = processAtMentions(escapeHtml(text));
 
   if (type === 'self') {
@@ -635,7 +760,8 @@ function disableInput(msg) {
   document.getElementById("sendBtn").disabled = true;
 }
 function enableInput() {
-  userInput.disabled = false; userInput.placeholder = '说点什么吧~ @小柴 可以提问';
+  userInput.disabled = false;
+  userInput.placeholder = `说点什么吧~ @${MODES[currentMode].name} 可以提问`;
   document.getElementById("sendBtn").disabled = false;
 }
 
@@ -655,11 +781,23 @@ function insertEmoji(e) {
 }
 
 // Invite panel
-function toggleInvite() {
+function toggleInvite(auto) {
   const panel = document.getElementById("invitePanel");
   if (panel.classList.contains("show")) { panel.classList.remove("show"); return; }
-  document.getElementById("inviteLink").textContent = getShareLink();
+  // 如果是自动弹出，检查是否已经在聊天中或已经弹过
+  if (auto && (chatStarted || inviteAutoShown)) return;
+  if (auto) inviteAutoShown = true;
+  document.getElementById("inviteRoomId").textContent = roomId || '';
   panel.classList.add("show");
+}
+function copyRoomId() {
+  const rid = roomId || '';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(rid).then(() => {
+      alert("房间号已复制！\n\n发给好友，对方输入即可加入~\n或点右上角「···」直接转发本页面更方便哦");
+    }).catch(() => prompt("复制房间号：", rid));
+  } else { prompt("复制房间号：", rid); }
+  toggleInvite();
 }
 function copyInvite() {
   const link = getShareLink();
@@ -674,7 +812,14 @@ function toggleMute() {
   aiMuted = !aiMuted;
   document.getElementById("muteBtn").textContent = aiMuted ? '🔇' : '🔊';
   if (isHost) broadcastToAll({ type: "ai-mute-state", muted: aiMuted });
-  displayNotice(aiMuted ? '小柴去睡觉了 💤' : '小柴回来了 🐕');
+  displayNotice(aiMuted ? `${MODES[currentMode].name}去睡觉了 💤` : `${MODES[currentMode].name}回来了 🐕`);
+}
+
+// Mode selection
+function selectMode(el) {
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  currentMode = el.dataset.mode;
 }
 
 function getShareLink() {
@@ -740,6 +885,8 @@ function initPeer(id) {
         participants.push({ id: pid, name: myName, avatar: myAvatar, online: true });
       }
       updateOnlineBar();
+      // 更新URL，让微信分享时自动带上房间号
+      history.replaceState(null, '', location.pathname + '?room=' + pid);
     }
   });
 
@@ -775,32 +922,46 @@ function hostHandleData(conn, data) {
   if (data.type === "pong") { handlePong(conn); return; }
 
   if (data.type === "join") {
-    const avatar = getNextAvatar();
     const nickname = (data.nickname || "访客").substring(0, 8);
-    conn.guestInfo = { name: nickname, avatar, id: conn.peer };
 
-    // Avoid duplicate participants on reconnect
+    // 检查是否是老用户重连
     const existing = participants.find(p => p.id === conn.peer);
     if (existing) {
+      // 重连：恢复原来的名字和头像，不当新人处理
       existing.online = true;
-      existing.name = nickname;
+      const avatar = existing.avatar;
+      conn.guestInfo = { name: existing.name, avatar, id: conn.peer };
+      updateOnlineBar();
+
+      conn.send({ type: "identity", nickname: existing.name, avatar });
+      conn.send({ type: "participants", list: participants });
+      conn.send({ type: "ai-mute-state", muted: aiMuted });
+      conn.send({ type: "mode-info", mode: currentMode, modeName: MODES[currentMode].name, modeTitle: MODES[currentMode].title });
+      syncHistoryTo(conn);
+
+      broadcastParticipants();
+      displayNotice(`${avatar} ${existing.name} 回来了`);
     } else {
+      // 新用户：分配头像和名字
+      const avatar = getNextAvatar();
+      conn.guestInfo = { name: nickname, avatar, id: conn.peer };
       participants.push({ id: conn.peer, name: nickname, avatar, online: true });
+      updateOnlineBar();
+
+      conn.send({ type: "identity", nickname, avatar });
+      conn.send({ type: "participants", list: participants });
+      conn.send({ type: "ai-mute-state", muted: aiMuted });
+      conn.send({ type: "mode-info", mode: currentMode, modeName: MODES[currentMode].name, modeTitle: MODES[currentMode].title });
+      syncHistoryTo(conn);
+
+      broadcastToAll({ type: "user-joined", name: nickname, avatar, id: conn.peer }, conn);
+      broadcastParticipants();
+      displayNotice(`${avatar} ${nickname} 加入了聊天`);
+      playJoinSound();
+      chatStarted = true;
+
+      if (!aiMuted) aiGreetNewUser(nickname);
     }
-    updateOnlineBar();
-
-    conn.send({ type: "identity", nickname, avatar });
-    conn.send({ type: "participants", list: participants });
-    conn.send({ type: "ai-mute-state", muted: aiMuted });
-
-    syncHistoryTo(conn);
-
-    broadcastToAll({ type: "user-joined", name: nickname, avatar, id: conn.peer }, conn);
-    broadcastParticipants();
-    displayNotice(`${avatar} ${nickname} 加入了聊天`);
-    playJoinSound();
-
-    if (!aiMuted) aiGreetNewUser(nickname);
 
   } else if (data.type === "chat-message") {
     const sender = conn.guestInfo?.name || "访客";
@@ -867,7 +1028,7 @@ async function callAI(userText) {
   if (!hostApiKey || roomEnded || aiMuted) return;
   messagesHistory.push({ role: "user", content: userText });
 
-  const aiDiv = displayMsg("ai", "思考中", "小柴", "🐕");
+  const aiDiv = displayMsg("ai", "思考中", MODES[currentMode].name, "🐕");
   const aiText = aiDiv.querySelector(".ai-text");
   if (aiText) aiText.classList.add("typing-dots");
   broadcastToAll({ type: "ai-loading" });
@@ -910,7 +1071,8 @@ async function callAI(userText) {
 
 async function aiGreetNewUser(nickname) {
   if (!hostApiKey || roomEnded) return;
-  const prompt = `新朋友「${nickname}」刚加入群聊。用你小柴的风格（可爱活泼的AI柴犬）简短打个招呼欢迎对方。25字以内，自然口语，可以带个颜文字或"汪"。`;
+  const mode = MODES[currentMode];
+  const prompt = `新朋友「${nickname}」刚加入群聊。用你${mode.name}的风格简短打个招呼欢迎对方。25字以内，自然口语，可以带个颜文字或"汪"。`;
   try {
     const resp = await fetch(API_URL, {
       method: "POST",
@@ -921,7 +1083,7 @@ async function aiGreetNewUser(nickname) {
     const data = await resp.json();
     const reply = data.choices?.[0]?.message?.content?.trim();
     if (reply) {
-      displayMsg("ai", reply, "小柴", "🐕");
+      displayMsg("ai", reply, mode.name, "🐕");
       messagesHistory.push({ role: "assistant", content: reply });
       broadcastToAll({ type: "ai-end", fullContent: reply });
       saveCache();
@@ -948,11 +1110,15 @@ function guestHandleData(data) {
       aiMuted = data.muted;
       document.getElementById("muteBtn").textContent = aiMuted ? '🔇' : '🔊';
       break;
+    case "mode-info":
+      currentMode = data.mode;
+      document.querySelector(".header .title").textContent = `${data.modeName} · ${data.modeTitle}`;
+      break;
     case "chat-message":
       displayMsg("other", data.text, data.sender, data.avatar);
       break;
     case "ai-loading":
-      const ld = displayMsg("ai", "思考中", "小柴", "🐕");
+      const ld = displayMsg("ai", "思考中", MODES[currentMode].name, "🐕");
       const ldText = ld.querySelector(".ai-text");
       if (ldText) ldText.classList.add("typing-dots");
       break;
@@ -970,10 +1136,10 @@ function guestHandleData(data) {
       const all = chatBox.querySelectorAll(".msg.ai");
       const fm = all[all.length - 1];
       if (fm) { const t = fm.querySelector(".ai-text"); if(t) { t.textContent = data.fullContent; t.classList.remove("typing-dots"); } }
-      else displayMsg("ai", data.fullContent, "小柴", "🐕");
+      else displayMsg("ai", data.fullContent, MODES[currentMode].name, "🐕");
       break;
     case "ai-error":
-      displayMsg("ai", "汪...出错了：" + data.error, "小柴", "🐕");
+      displayMsg("ai", "汪...出错了：" + data.error, MODES[currentMode].name, "🐕");
       break;
     case "msg-ack":
       confirmMsgStatus(data.msgId, data.status);
@@ -1014,6 +1180,9 @@ function guestReconnect() {
         hostConn.on("close", guestDisconnected);
         hostConn.on("error", guestDisconnected);
         hostConn.send({ type: "join", nickname: myName });
+        // 恢复房主在线状态
+        const hostP = participants.find(p => p.id === roomId);
+        if (hostP) { hostP.online = true; updateOnlineBar(); }
       });
       hostConn.on("error", () => guestReconnect());
     } catch(e) { guestReconnect(); }
@@ -1025,6 +1194,9 @@ function guestDisconnected() {
   setConnStatus("连接断开了", "err");
   disableInput("连接断开，正在重连...");
   stopHeartbeat(hostConn);
+  // 把房主标记为离线（房主的id就是roomId）
+  const hostP = participants.find(p => p.id === roomId);
+  if (hostP) { hostP.online = false; updateOnlineBar(); }
   guestReconnect();
 }
 
@@ -1044,6 +1216,12 @@ function confirmCreate() {
   isHost = true;
   myName = "房主";
   myAvatar = "👑";
+
+  // Apply selected mode
+  const mode = MODES[currentMode];
+  messagesHistory = [{ role: "system", content: mode.prompt }];
+  document.querySelector(".header .title").textContent = `${mode.name} · ${mode.title}`;
+
   document.getElementById("createOverlay").classList.add("hidden");
   enterChat();
   document.getElementById("endBtn").classList.remove("hidden");
@@ -1110,7 +1288,7 @@ function recoverHost() {
       document.getElementById("setupScreen").classList.add("hidden");
       enterChat();
       document.getElementById("endBtn").classList.remove("hidden");
-      setConnStatus("恢复房间中...", "warn");
+      setConnStatus("重新进入房间...", "warn");
       initPeer(rid);
       return;
     }
@@ -1150,6 +1328,9 @@ function sendMyMessage() {
   userInput.value = "";
   userInput.style.height = "auto";
   document.getElementById("emojiPanel").classList.remove("show");
+  // 关闭邀请面板（如果开着的话）& 标记聊天已开始
+  document.getElementById("invitePanel").classList.remove("show");
+  chatStarted = true;
 
   const mid = "m" + (++msgIdCounter) + "_" + Date.now();
 
