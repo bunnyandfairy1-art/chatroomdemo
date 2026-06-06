@@ -522,10 +522,6 @@
         <input type="text" id="joinInput" placeholder="输入房间号">
         <button onclick="joinRoom()">加入</button>
       </div>
-      <div class="join-row">
-        <input type="text" id="recoverInput" placeholder="房主密码">
-        <button onclick="recoverHost()" style="background:var(--duo-purple);box-shadow:0 3px 0 #a855c7;">重进房间</button>
-      </div>
     </div>
   </div>
 
@@ -536,7 +532,6 @@
       <p id="createDesc" style="font-size:13px;color:var(--duo-text-light);margin-bottom:14px;"></p>
       <div id="aiFields">
         <input type="password" id="createApiKey" placeholder="API Key (sk-...)" autocomplete="off">
-        <input type="text" id="createPassword" placeholder="设置密码（6位以上）" maxlength="20">
         <div class="note" style="margin-bottom:12px;">还没有Key？<a href="https://platform.deepseek.com" target="_blank">去这里免费获取 →</a></div>
       </div>
       <button class="btn-full" onclick="confirmCreate()">开始聊天！</button>
@@ -594,15 +589,18 @@ const ANIMALS = ['🐱','🐶','🐰','🦊','🐼','🐨','🐯','🦁','🐸',
 
 // ========== AI CONFIG ==========
 const AI_NAME = "小柴";
-const AI_PROMPT = `你是"小柴"，一个群聊里的AI助手。你的任务是根据聊天内容自然地参与对话。
+const AI_PROMPT = `你是"小柴"，一个群聊里的AI参与者。你什么都能聊，但聊到有争议的事你绝不和稀泥。
 
 要求：
-- 像一个聪明、有见识的朋友一样说话，自然口语化
-- 根据聊天内容灵活应对：闲聊时轻松幽默，讨论问题时给出有深度的分析，需要帮忙时认真帮忙
-- 回复简洁有力，通常1-3句话，除非对方在问复杂问题需要详细回答
-- 不要刻意卖萌或角色扮演，就像正常人聊天一样
-- 有自己的观点和判断，不要只是附和
-- 看到所有人的发言，有上下文记忆，回复要连贯`;
+- 日常闲聊时轻松自然，像朋友一样接话、开玩笑、分享想法
+- 一旦涉及争议、矛盾、是非问题，立刻切换到严肃模式：基于事实和逻辑给出明确判断
+- 判断时善于引用常识、法律常识、社会规范、心理学洞察等来支撑观点，让人信服
+- 如果有人狡辩、逃避责任、偷换概念、道德绑架，精准拆解逻辑漏洞，对事不对人
+- 讨论陷入死循环时，主动总结分歧，给出你认为更合理的结论并说明为什么
+- 语气果断但不攻击人，可以犀利但不刻薄
+- 简洁有力，通常2-4句话，每句话都有分量
+- 口语化，像一个很聪明、有效率、又正义的朋友
+- 看到所有人的发言，有上下文记忆，回复连贯`;
 
 const DOG_SVG_SMALL = `<svg class="dog-avatar dog-bounce" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <circle cx="50" cy="52" r="38" fill="#f5d38a"/>
@@ -620,14 +618,16 @@ const DOG_SVG_SMALL = `<svg class="dog-avatar dog-bounce" viewBox="0 0 100 100" 
 
 // ========== STATE ==========
 let peer = null, connections = [], hostConn = null;
-let isHost = false, roomId = null, roomEnded = false, roomPassword = "";
+let isHost = false, roomId = null, roomEnded = false;
 let myName = "", myAvatar = "", hostApiKey = null;
+// 持久用户身份：每个浏览器生成唯一ID，localStorage保存名称和头像
+let myUserId = localStorage.getItem("chat_user_id") || (() => { const id = "u-" + Math.random().toString(36).slice(2,10); localStorage.setItem("chat_user_id", id); return id; })();
 let aiMuted = false, avatarIdx = 0, inviteAutoShown = false, chatStarted = false;
 let participants = [];
 let msgQueue = [];
 let msgIdCounter = 0;
 let heartbeatTimers = new Map();
-let reconnectCount = 0, maxReconnect = 5;
+let reconnectCount = 0;
 let aiDebounceTimer = null, pendingAiText = "";
 let messagesHistory = [{
   role: "system",
@@ -950,7 +950,7 @@ function initPeer(id) {
   peer.on("error", (err) => {
     console.error("Peer error:", err);
     if (err.type === 'peer-unavailable') {
-      setConnStatus("房间不存在或房主已离线", "err");
+      setConnStatus("房间不存在或已结束", "err");
     }
   });
 
@@ -969,14 +969,16 @@ function hostHandleData(conn, data) {
 
   if (data.type === "join") {
     const nickname = (data.nickname || "访客").substring(0, 8);
+    const userId = data.userId || conn.peer; // 持久身份ID
 
-    // 检查是否是老用户重连
-    const existing = participants.find(p => p.id === conn.peer);
+    // 检查是否是老用户回归（基于持久userId）
+    const existing = participants.find(p => p.userId === userId);
     if (existing) {
-      // 重连：恢复原来的名字和头像，不当新人处理
+      // 回归用户：继承原来的名字和头像
       existing.online = true;
+      existing.id = conn.peer; // 更新连接peer ID
       const avatar = existing.avatar;
-      conn.guestInfo = { name: existing.name, avatar, id: conn.peer };
+      conn.guestInfo = { name: existing.name, avatar, id: conn.peer, userId };
       updateOnlineBar();
 
       conn.send({ type: "identity", nickname: existing.name, avatar });
@@ -989,8 +991,8 @@ function hostHandleData(conn, data) {
     } else {
       // 新用户：分配头像和名字
       const avatar = getNextAvatar();
-      conn.guestInfo = { name: nickname, avatar, id: conn.peer };
-      participants.push({ id: conn.peer, name: nickname, avatar, online: true });
+      conn.guestInfo = { name: nickname, avatar, id: conn.peer, userId };
+      participants.push({ id: conn.peer, userId, name: nickname, avatar, online: true });
       updateOnlineBar();
 
       conn.send({ type: "identity", nickname, avatar });
@@ -1198,7 +1200,14 @@ function guestHandleData(data) {
   switch(data.type) {
     case "room-ended": showEnded(); break;
     case "room-full": alert("房间满了（最多10人）~"); backToSetup(); break;
-    case "identity": myName = data.nickname; myAvatar = data.avatar; document.getElementById("endBtn").classList.remove("hidden"); break;
+    case "identity":
+      myName = data.nickname;
+      myAvatar = data.avatar;
+      // 持久化身份，下次进入同房间时继承
+      localStorage.setItem("chat_user_name", myName);
+      localStorage.setItem("chat_user_avatar", myAvatar);
+      document.getElementById("endBtn").classList.remove("hidden");
+      break;
     case "participants": participants = data.list; updateOnlineBar(); break;
     case "user-joined":
       if (!participants.find(p => p.id === data.id)) participants.push({ id: data.id, name: data.name, avatar: data.avatar, online: true });
@@ -1219,28 +1228,37 @@ function guestHandleData(data) {
     case "file-message":
       displayFileMsg("other", data.fileName, data.sizeText, data.sender, data.avatar);
       break;
-    case "ai-loading":
+    case "ai-loading": {
       const ld = displayMsg("ai", "", AI_NAME, "🐕");
+      ld.classList.add("ai-streaming");
       const ldText = ld.querySelector(".ai-text");
       if (ldText) ldText.innerHTML = '<span class="typing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
       break;
-    case "ai-start":
-      const last = chatBox.querySelector(".msg.ai:last-child");
-      if (last) { const t = last.querySelector(".ai-text"); if(t) { t.innerHTML = ""; } }
+    }
+    case "ai-start": {
+      const streaming = chatBox.querySelector(".msg.ai.ai-streaming");
+      if (streaming) { const t = streaming.querySelector(".ai-text"); if(t) { t.innerHTML = ""; } }
       break;
-    case "ai-delta":
-      const msgs = chatBox.querySelectorAll(".msg.ai");
-      const lm = msgs[msgs.length - 1];
-      if (lm) { const t = lm.querySelector(".ai-text"); if(t) t.textContent += data.content; }
+    }
+    case "ai-delta": {
+      const streaming = chatBox.querySelector(".msg.ai.ai-streaming");
+      if (streaming) { const t = streaming.querySelector(".ai-text"); if(t) t.textContent += data.content; }
       chatBox.scrollTop = chatBox.scrollHeight;
       break;
-    case "ai-end":
-      const all = chatBox.querySelectorAll(".msg.ai");
-      const fm = all[all.length - 1];
-      if (fm) { const t = fm.querySelector(".ai-text"); if(t) { t.textContent = data.fullContent; t.classList.remove("typing-dots"); } }
-      else displayMsg("ai", data.fullContent, AI_NAME, "🐕");
+    }
+    case "ai-end": {
+      const streaming = chatBox.querySelector(".msg.ai.ai-streaming");
+      if (streaming) {
+        const t = streaming.querySelector(".ai-text");
+        if(t) t.textContent = data.fullContent;
+        streaming.classList.remove("ai-streaming");
+      } else {
+        // 没收到loading/delta，直接显示完整消息
+        displayMsg("ai", data.fullContent, AI_NAME, "🐕");
+      }
       playAIDoneSound();
       break;
+    }
     case "ai-error":
       displayMsg("ai", "出错了：" + data.error, AI_NAME, "🐕");
       break;
@@ -1248,17 +1266,22 @@ function guestHandleData(data) {
       confirmMsgStatus(data.msgId, data.status);
       break;
     case "room-end-notice":
-      showEnded();
+      if (!roomEnded) showEnded();
       break;
-    case "room-end-self":
-      // 自己发起的结束，看默认文案
+    case "room-end-self": {
+      // 自己发起的结束（可能本地已处理，防重复）
+      if (roomEnded) break;
       roomEnded = true;
       clearCache();
       chatBox.innerHTML = "";
       playEndSound();
-      document.getElementById("endedOverlay").classList.remove("hidden");
+      const selfOverlay = document.getElementById("endedOverlay");
+      const selfDesc = selfOverlay.querySelector("p");
+      if (selfDesc) selfDesc.innerHTML = "所有记录已清除<br>下次再聊~";
+      selfOverlay.classList.remove("hidden");
       disableInput("已结束");
       break;
+    }
   }
   saveCache();
 }
@@ -1273,6 +1296,16 @@ function showEnded() {
   if (desc) desc.innerHTML = "对方和你说白白了<br>下次再聊～";
   overlay.classList.remove("hidden");
   disableInput("已结束");
+}
+
+function showRoomEnded(reason) {
+  roomEnded = true;
+  const overlay = document.getElementById("endedOverlay");
+  const desc = overlay.querySelector("p");
+  if (desc) desc.innerHTML = reason || "聊天已经结束<br>房间已清空";
+  overlay.classList.remove("hidden");
+  disableInput("已结束");
+  document.getElementById("endBtn").classList.add("hidden");
 }
 
 function backToSetup() {
@@ -1305,9 +1338,7 @@ function backToSetup() {
   if (desc) desc.innerHTML = "所有记录已清除<br>下次再聊~";
   // Clear form inputs
   document.getElementById("createApiKey").value = "";
-  document.getElementById("createPassword").value = "";
   document.getElementById("joinInput").value = "";
-  document.getElementById("recoverInput").value = "";
   // Clean URL
   history.replaceState(null, '', location.pathname);
   // Destroy peer
@@ -1318,12 +1349,11 @@ function backToSetup() {
 
 // ========== RECONNECT (GUEST) ==========
 function guestReconnect() {
-  if (reconnectCount >= maxReconnect || roomEnded) {
-    showBanner("无法重连，房主可能已离线", "warn");
-    return;
-  }
+  if (roomEnded) return;
   reconnectCount++;
-  setConnStatus(`重连中 (${reconnectCount}/${maxReconnect})...`, "warn");
+  const delay = Math.min(2000 * reconnectCount, 10000); // 递增间隔，最大10秒
+  setConnStatus(`连接断开，重连中...`, "warn");
+  disableInput("正在重连...");
 
   setTimeout(() => {
     if (roomEnded || !peer || peer.destroyed) return;
@@ -1331,30 +1361,25 @@ function guestReconnect() {
       hostConn = peer.connect(roomId, { reliable: true });
       hostConn.on("open", () => {
         reconnectCount = 0;
-        setConnStatus("重新连接成功！", "ok");
+        setConnStatus("连接成功！", "ok");
         enableInput();
         startHeartbeat(hostConn);
         hostConn.on("data", guestHandleData);
         hostConn.on("close", guestDisconnected);
         hostConn.on("error", guestDisconnected);
-        hostConn.send({ type: "join", nickname: myName });
-        // 恢复房主在线状态
-        const hostP = participants.find(p => p.id === roomId);
-        if (hostP) { hostP.online = true; updateOnlineBar(); }
+        hostConn.send({ type: "join", nickname: myName || ("用户" + randomString(3)), userId: myUserId });
       });
       hostConn.on("error", () => guestReconnect());
+      setTimeout(() => { if (!hostConn?.open && !roomEnded) guestReconnect(); }, 8000);
     } catch(e) { guestReconnect(); }
-  }, 2000 * reconnectCount);
+  }, delay);
 }
 
 function guestDisconnected() {
   if (roomEnded) return;
   setConnStatus("连接断开了", "err");
-  disableInput("连接断开，正在重连...");
+  disableInput("正在重连...");
   stopHeartbeat(hostConn);
-  // 把房主标记为离线（房主的id就是roomId）
-  const hostP = participants.find(p => p.id === roomId);
-  if (hostP) { hostP.online = false; updateOnlineBar(); }
   guestReconnect();
 }
 
@@ -1381,14 +1406,11 @@ function confirmCreate() {
   playClickSound();
   const noAi = (createRoomType === "empty");
   const key = document.getElementById("createApiKey").value.trim();
-  const pwd = document.getElementById("createPassword").value.trim();
 
   if (!noAi) {
     if (!key || !key.startsWith("sk-")) { alert("请输入有效的 API Key"); return; }
-    if (!pwd || pwd.length < 6) { alert("密码至少6位"); return; }
   }
   hostApiKey = noAi ? null : key;
-  roomPassword = noAi ? "" : pwd;
   isHost = true;
   myName = "房主";
   myAvatar = "👑";
@@ -1408,11 +1430,11 @@ function confirmCreate() {
   document.getElementById("endBtn").classList.remove("hidden");
   initPeer("room-" + randomString(8));
 
-  // Save room info
+  // Save room info for host reconnect (no password needed)
   setTimeout(() => {
-    if (roomId && roomPassword) {
+    if (roomId) {
       const rooms = JSON.parse(localStorage.getItem("host_rooms") || "{}");
-      rooms[roomId] = { password: roomPassword, apiKey: hostApiKey, created: Date.now() };
+      rooms[roomId] = { apiKey: hostApiKey, created: Date.now() };
       localStorage.setItem("host_rooms", JSON.stringify(rooms));
     }
   }, 3000);
@@ -1428,6 +1450,7 @@ function joinRoom() {
   myAvatar = "👤";
   document.getElementById("setupScreen").classList.add("hidden");
   enterChat();
+  document.getElementById("endBtn").classList.remove("hidden");
   disableInput("正在连接...");
   setConnStatus("正在连接房间...", "warn");
   initPeer("guest-" + randomString(8));
@@ -1441,47 +1464,17 @@ function joinRoom() {
       hostConn.on("data", guestHandleData);
       hostConn.on("close", guestDisconnected);
       hostConn.on("error", guestDisconnected);
-      hostConn.send({ type: "join", nickname: "用户" + randomString(3) });
+      hostConn.send({ type: "join", nickname: "用户" + randomString(3), userId: myUserId });
     });
     hostConn.on("error", (e) => {
-      setConnStatus("连接失败", "err");
-      alert("无法连接房主，请确认房间号正确且房主在线~");
-      backToSetup();
+      showRoomEnded("房间里已经没有人了<br>聊天记录已清空");
     });
     setTimeout(() => {
-      if (!hostConn?.open && !roomEnded) { alert("连接超时啦~"); backToSetup(); }
-    }, 15000);
+      if (!hostConn?.open && !roomEnded) {
+        showRoomEnded("连接超时<br>房间可能不存在或已结束");
+      }
+    }, 10000);
   });
-}
-
-function recoverHost() {
-  const pwd = document.getElementById("recoverInput").value.trim();
-  if (!pwd) { alert("请输入房主密码~"); return; }
-  const stored = localStorage.getItem("host_rooms");
-  if (stored) {
-    const rooms = JSON.parse(stored);
-    const match = Object.entries(rooms).find(([rid, data]) => data.password === pwd);
-    if (match) {
-      const [rid, data] = match;
-      hostApiKey = data.apiKey;
-      roomPassword = pwd;
-      roomId = rid;
-      isHost = true;
-      myName = "房主";
-      myAvatar = "👑";
-      messagesHistory = hostApiKey ? [{ role: "system", content: AI_PROMPT }] : [];
-      document.getElementById("setupScreen").classList.add("hidden");
-      enterChat();
-      enableInput();
-      document.querySelector(".header .title").textContent = hostApiKey ? "小柴群聊" : "群聊房间";
-      if (!hostApiKey) document.getElementById("muteBtn").classList.add("hidden");
-      document.getElementById("endBtn").classList.remove("hidden");
-      setConnStatus("正在回到聊天...", "warn");
-      initPeer(rid);
-      return;
-    }
-  }
-  alert("找不到匹配的房间，密码可能不对~");
 }
 
 function enterChat() {
@@ -1509,11 +1502,25 @@ function endRoom() {
     chatBox.innerHTML = "";
     disableInput("已结束");
     document.getElementById("endBtn").classList.add("hidden");
-    document.getElementById("endedOverlay").classList.remove("hidden");
+    // 主动结束方看这个文案
+    const overlay = document.getElementById("endedOverlay");
+    const desc = overlay.querySelector("p");
+    if (desc) desc.innerHTML = "所有记录已清除<br>下次再聊~";
+    overlay.classList.remove("hidden");
     setTimeout(() => { connections.forEach(c => { try{c.close();}catch(e){} }); connections = []; }, 1000);
   } else {
     // 访客也能结束整个房间
     if (hostConn?.open) hostConn.send({ type: "request-end" });
+    // 主动方立即本地显示结束（不依赖房主回传）
+    roomEnded = true;
+    clearCache();
+    chatBox.innerHTML = "";
+    disableInput("已结束");
+    document.getElementById("endBtn").classList.add("hidden");
+    const gOverlay = document.getElementById("endedOverlay");
+    const gDesc = gOverlay.querySelector("p");
+    if (gDesc) gDesc.innerHTML = "所有记录已清除<br>下次再聊~";
+    gOverlay.classList.remove("hidden");
   }
 }
 
@@ -1659,6 +1666,30 @@ function randomString(n) { return Math.random().toString(36).substring(2, 2+n); 
   const params = new URLSearchParams(location.search);
   const roomFromUrl = params.get("room");
   if (roomFromUrl) {
+    // 检查是否是房主回来（localStorage有该房间记录）
+    const stored = localStorage.getItem("host_rooms");
+    if (stored) {
+      const rooms = JSON.parse(stored);
+      if (rooms[roomFromUrl]) {
+        // 房主自动恢复
+        hostApiKey = rooms[roomFromUrl].apiKey || null;
+        roomId = roomFromUrl;
+        isHost = true;
+        myName = "房主";
+        myAvatar = "👑";
+        messagesHistory = hostApiKey ? [{ role: "system", content: AI_PROMPT }] : [];
+        document.getElementById("setupScreen").classList.add("hidden");
+        enterChat();
+        enableInput();
+        document.querySelector(".header .title").textContent = hostApiKey ? "小柴群聊" : "群聊房间";
+        if (!hostApiKey) document.getElementById("muteBtn").classList.add("hidden");
+        document.getElementById("endBtn").classList.remove("hidden");
+        setConnStatus("正在回到聊天...", "warn");
+        initPeer(roomFromUrl);
+        return;
+      }
+    }
+    // 不是房主，以访客身份加入
     document.getElementById("joinInput").value = roomFromUrl;
     joinRoom();
   }
