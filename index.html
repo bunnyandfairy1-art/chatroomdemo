@@ -189,6 +189,35 @@
     }
     .input-area .send-btn:disabled { background: #e5e5e5; box-shadow: 0 3px 0 #ccc; color: #aaa; }
     .input-area .emoji-btn { background: var(--duo-yellow); box-shadow: 0 3px 0 #d4a800; }
+    .input-area .mic-btn { background: #ff6b6b; box-shadow: 0 3px 0 #d63031; color: white; font-size: 16px; }
+    .input-area .mic-btn.recording { animation: mic-pulse 0.8s infinite; }
+    @keyframes mic-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+    .voice-recording-hint {
+      position: absolute; top: -44px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.75); color: white; padding: 6px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none;
+    }
+    .voice-msg {
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+      background: #f0f0f0; border-radius: 12px; cursor: pointer; min-width: 120px;
+      touch-action: manipulation; user-select: none;
+    }
+    .voice-msg.playing .voice-icon { animation: voice-wave 1s infinite; }
+    @keyframes voice-wave { 0%{opacity:1} 50%{opacity:0.3} 100%{opacity:1} }
+    .voice-msg .voice-icon { font-size: 16px; }
+    .voice-msg .voice-dur { font-size: 12px; color: #666; }
+    .voice-transcript { font-size: 13px; color: #555; margin-top: 4px; line-height: 1.4; word-break: break-all; }
+    .msg.self .voice-transcript { color: rgba(255,255,255,0.85); }
+    .input-area .attach-btn { background: #a29bfe; box-shadow: 0 3px 0 #6c5ce7; color: white; font-size: 16px; }
+    .chat-img { max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer; display: block; }
+    .chat-img:active { opacity: 0.8; }
+    .file-bubble {
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+      background: #f0f0f0; border-radius: 12px; font-size: 12px; color: #333;
+    }
+    .file-bubble .file-icon { font-size: 20px; }
+    .file-bubble .file-name { font-weight: 600; word-break: break-all; }
+    .file-bubble .file-size { color: #999; font-size: 11px; }
 
     .emoji-panel {
       display: none; position: absolute; bottom: 65px; left: 10px; right: 10px;
@@ -236,19 +265,33 @@
 
     /* Mode selector grid */
     .mode-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
-      margin-bottom: 16px; text-align: left;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+      margin-bottom: 12px; text-align: left;
     }
     .mode-card {
-      padding: 12px; border-radius: 12px; cursor: pointer;
+      padding: 10px; border-radius: 12px; cursor: pointer;
       border: 2px solid var(--duo-border); transition: all 0.2s;
-      display: flex; flex-direction: column; gap: 4px;
+      display: flex; flex-direction: column; gap: 2px;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none;
     }
     .mode-card:active { transform: scale(0.97); }
     .mode-card.selected { border-color: var(--duo-green); background: var(--duo-green-light); }
-    .mode-card .mode-icon { font-size: 20px; }
-    .mode-card .mode-name { font-size: 13px; font-weight: 800; color: var(--duo-text); }
-    .mode-card .mode-desc { font-size: 11px; color: var(--duo-text-light); line-height: 1.3; }
+    .mode-card .mode-icon, .mode-card .mode-name, .mode-card .mode-desc { pointer-events: none; }
+    .mode-card .mode-icon { font-size: 16px; }
+    .mode-card .mode-name { font-size: 12px; font-weight: 800; color: var(--duo-text); }
+    .mode-card .mode-desc { font-size: 10px; color: var(--duo-text-light); line-height: 1.3; }
+    .mode-card-empty {
+      grid-column: span 2; padding: 10px; border-radius: 12px; cursor: pointer;
+      border: 2px dashed var(--duo-border); transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none;
+    }
+    .mode-card-empty:active { transform: scale(0.97); }
+    .mode-card-empty.selected { border-color: var(--duo-green); background: var(--duo-green-light); border-style: solid; }
+    .mode-card-empty .mode-icon, .mode-card-empty .mode-name, .mode-card-empty .mode-desc { pointer-events: none; }
+    .mode-card-empty .mode-icon { font-size: 16px; }
+    .mode-card-empty .mode-name { font-size: 12px; font-weight: 800; color: var(--duo-text); }
+    .mode-card-empty .mode-desc { font-size: 11px; color: var(--duo-text-light); }
 
     /* ===== Setup screen ===== */
     .setup-screen {
@@ -288,9 +331,10 @@
       background: var(--duo-card); border-radius: 20px 20px 0 0;
       padding: 24px 20px; z-index: 90;
       box-shadow: 0 -4px 20px rgba(0,0,0,0.12);
-      transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.18,0.89,0.32,1.28);
+      transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.18,0.89,0.32,1.28), visibility 0s 0.3s;
+      visibility: hidden;
     }
-    .invite-panel.show { transform: translateY(0); }
+    .invite-panel.show { transform: translateY(0); visibility: visible; transition: transform 0.3s cubic-bezier(0.18,0.89,0.32,1.28), visibility 0s 0s; }
     .invite-panel h3 { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
     .invite-panel .link-box {
       background: #f5f5f5; padding: 12px; border-radius: 10px;
@@ -365,7 +409,7 @@
   </style>
 </head>
 <body>
-<div id="app" style="display:flex;flex-direction:column;height:100%;background:var(--duo-bg);position:relative;">
+<div id="app" style="display:flex;flex-direction:column;height:100%;background:var(--duo-bg);position:relative;overflow:hidden;">
 
   <!-- Header -->
   <div class="header hidden" id="headerBar">
@@ -405,8 +449,11 @@
     <button class="emoji-btn" onclick="toggleEmoji()">😊</button>
     <textarea id="userInput" rows="1" placeholder="说点什么吧~ @小柴 可以提问" onkeydown="handleKey(event)"></textarea>
     <div class="btn-row">
+      <button class="attach-btn" onclick="document.getElementById('fileInput').click()">+</button>
+      <button class="mic-btn" id="micBtn" ontouchstart="startVoice(event)" ontouchend="stopVoice(event)" onmousedown="startVoice(event)" onmouseup="stopVoice(event)" onmouseleave="cancelVoice()">🔈</button>
       <button class="send-btn" id="sendBtn" onclick="sendMyMessage()">↑</button>
     </div>
+    <input type="file" id="fileInput" accept="image/*,.txt,.md,.json,.csv,.pdf,.doc,.docx" style="display:none" onchange="handleFileSelect(event)">
   </div>
 
   <!-- Setup -->
@@ -432,7 +479,7 @@
       </svg>
     </div>
     <h2>小柴群聊室</h2>
-    <p class="desc">和AI小柴一起聊天吧！<br>创建房间邀请朋友 · 最多10人 · 阅后即焚</p>
+    <p class="desc">创建房间邀请朋友<br>最多10人 · 阅后即焚 · 不留痕迹</p>
     <div class="actions">
       <button class="btn-big btn-create" onclick="showCreateDialog()">创建房间</button>
       <div class="join-row">
@@ -441,7 +488,7 @@
       </div>
       <div class="join-row" style="margin-top:4px">
         <input type="text" id="recoverInput" placeholder="房主密码">
-        <button onclick="recoverHost()" style="background:var(--duo-purple);box-shadow:0 3px 0 #a855c7;">重进房间</button>
+        <button onclick="recoverHost()" style="background:var(--duo-purple);box-shadow:0 3px 0 #a855c7;">回到聊天</button>
       </div>
     </div>
   </div>
@@ -450,37 +497,42 @@
   <div class="overlay hidden" id="createOverlay">
     <div class="card">
       <h2>创建房间</h2>
-      <p>选一个聊天模式，AI会对应切换角色~</p>
+      <p style="font-size:13px;color:var(--duo-text-light);margin-bottom:4px;">选一个模式</p>
       <div class="mode-grid" id="modeGrid">
         <div class="mode-card selected" data-mode="casual" onclick="selectMode(this)">
           <span class="mode-icon">🐕</span>
           <span class="mode-name">闲聊陪伴</span>
-          <span class="mode-desc">活泼群友，陪聊不冷场</span>
+          <span class="mode-desc">AI陪聊不冷场</span>
         </div>
         <div class="mode-card" data-mode="mediate" onclick="selectMode(this)">
           <span class="mode-icon">🤝</span>
           <span class="mode-name">关系调停</span>
-          <span class="mode-desc">中立分析，化解分歧</span>
+          <span class="mode-desc">AI居中调解分歧</span>
         </div>
         <div class="mode-card" data-mode="decide" onclick="selectMode(this)">
           <span class="mode-icon">⚖️</span>
           <span class="mode-name">群体决策</span>
-          <span class="mode-desc">列利弊，帮做选择</span>
+          <span class="mode-desc">AI帮分析利弊</span>
         </div>
         <div class="mode-card" data-mode="brainstorm" onclick="selectMode(this)">
           <span class="mode-icon">🧠</span>
           <span class="mode-name">头脑风暴</span>
-          <span class="mode-desc">发散灵感，激发创意</span>
+          <span class="mode-desc">AI激发创意灵感</span>
         </div>
         <div class="mode-card" data-mode="debate" onclick="selectMode(this)">
           <span class="mode-icon">🎭</span>
           <span class="mode-name">辩论对决</span>
-          <span class="mode-desc">当裁判，评论据强度</span>
+          <span class="mode-desc">AI当裁判打分</span>
         </div>
         <div class="mode-card" data-mode="meeting" onclick="selectMode(this)">
           <span class="mode-icon">📋</span>
           <span class="mode-name">会议纪要</span>
-          <span class="mode-desc">实时记录，生成总结</span>
+          <span class="mode-desc">AI实时记录总结</span>
+        </div>
+        <div class="mode-card-empty" data-mode="empty" onclick="selectMode(this)">
+          <span class="mode-icon">🔒</span>
+          <span class="mode-name">空房间</span>
+          <span class="mode-desc">纯聊天，无AI</span>
         </div>
       </div>
       <input type="password" id="createApiKey" placeholder="API Key (sk-...)" autocomplete="off">
@@ -504,8 +556,8 @@
         <path d="M60 50 Q63 54 65 50" stroke="#3c3c3c" stroke-width="2.5" fill="none"/>
         <path d="M40 76 Q50 72 60 76" stroke="#d4883c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
       </svg>
-      <h2>聊天结束啦~</h2>
-      <p>记录已清除（阅后即焚）<br>下次再来找小柴玩吧！</p>
+      <h2>聊天结束</h2>
+      <p>所有记录已清除<br>下次再聊~</p>
       <button class="btn-full" onclick="location.reload()">回到首页</button>
     </div>
   </div>
@@ -610,6 +662,12 @@ const MODES = {
 5. 常用句式："记下了：..."、"这是一个待办项..."、"目前讨论的要点是..."
 6. 有人跑题时温柔提醒回到主题。
 7. 会议结束时自动输出完整纪要摘要。偶尔加"汪，记好了！"`
+  },
+  empty: {
+    name: "",
+    title: "空房间",
+    noAI: true,
+    prompt: ""
   }
 };
 let currentMode = "casual";
@@ -761,7 +819,8 @@ function disableInput(msg) {
 }
 function enableInput() {
   userInput.disabled = false;
-  userInput.placeholder = `说点什么吧~ @${MODES[currentMode].name} 可以提问`;
+  const mode = MODES[currentMode];
+  userInput.placeholder = mode.noAI ? "说点什么吧~" : `说点什么吧~ @${mode.name} 可以提问`;
   document.getElementById("sendBtn").disabled = false;
 }
 
@@ -809,6 +868,7 @@ function copyInvite() {
 
 // AI mute
 function toggleMute() {
+  if (MODES[currentMode].noAI) return;
   aiMuted = !aiMuted;
   document.getElementById("muteBtn").textContent = aiMuted ? '🔇' : '🔊';
   if (isHost) broadcastToAll({ type: "ai-mute-state", muted: aiMuted });
@@ -817,9 +877,23 @@ function toggleMute() {
 
 // Mode selection
 function selectMode(el) {
-  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  if (!el || !el.getAttribute('data-mode')) {
+    el = el.closest('.mode-card, .mode-card-empty');
+    if (!el) return;
+  }
+  document.querySelectorAll('.mode-card, .mode-card-empty').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
-  currentMode = el.dataset.mode;
+  currentMode = el.getAttribute('data-mode');
+  // 空房间模式隐藏API Key输入框
+  const apiInput = document.getElementById("createApiKey");
+  const apiNote = apiInput.parentElement.querySelector('.note');
+  if (MODES[currentMode].noAI) {
+    apiInput.style.display = "none";
+    if (apiNote) apiNote.style.display = "none";
+  } else {
+    apiInput.style.display = "";
+    if (apiNote) apiNote.style.display = "";
+  }
 }
 
 function getShareLink() {
@@ -974,8 +1048,56 @@ function hostHandleData(conn, data) {
 
     if (!aiMuted) triggerAIDebounced(`${sender}: ${data.text}`);
 
+  } else if (data.type === "voice-message") {
+    const sender = conn.guestInfo?.name || "访客";
+    const avatar = conn.guestInfo?.avatar || "👤";
+    const mid = data.msgId;
+    const transcript = data.transcript || "";
+    conn.send({ type: "msg-ack", msgId: mid, status: "ok" });
+    broadcastToAll({ type: "voice-message", audio: data.audio, duration: data.duration, sender, avatar, transcript }, conn);
+    displayVoiceMsg("other", data.audio, data.duration, sender, avatar, null, transcript);
+    if (!aiMuted && transcript) triggerAIDebounced(`${sender}(语音): ${transcript}`);
+
+  } else if (data.type === "image-message") {
+    const sender = conn.guestInfo?.name || "访客";
+    const avatar = conn.guestInfo?.avatar || "👤";
+    const mid = data.msgId;
+    conn.send({ type: "msg-ack", msgId: mid, status: "ok" });
+    broadcastToAll({ type: "image-message", image: data.image, sender, avatar }, conn);
+    displayImageMsg("other", data.image, sender, avatar);
+    if (!aiMuted && !MODES[currentMode].noAI) triggerAIDebounced(`${sender}: [发了一张图片]`);
+
+  } else if (data.type === "file-message") {
+    const sender = conn.guestInfo?.name || "访客";
+    const avatar = conn.guestInfo?.avatar || "👤";
+    const mid = data.msgId;
+    conn.send({ type: "msg-ack", msgId: mid, status: "ok" });
+    broadcastToAll({ type: "file-message", fileName: data.fileName, sizeText: data.sizeText, sender, avatar }, conn);
+    displayFileMsg("other", data.fileName, data.sizeText, sender, avatar);
+    if (!aiMuted && !MODES[currentMode].noAI && data.fileData) {
+      try {
+        const textContent = atob(data.fileData.split(',')[1]);
+        const preview = textContent.substring(0, 2000);
+        triggerAIDebounced(`${sender}: [上传了文件 ${data.fileName}，内容如下]\n${preview}`);
+      } catch(e) {
+        triggerAIDebounced(`${sender}: [上传了文件 ${data.fileName}]`);
+      }
+    }
+
   } else if (data.type === "msg-ack") {
     confirmMsgStatus(data.msgId, data.status);
+  } else if (data.type === "request-end") {
+    // 任何人都可以结束房间
+    if (!roomEnded) {
+      roomEnded = true;
+      broadcastToAll({ type: "room-end-notice" });
+      clearCache();
+      localStorage.removeItem("host_rooms");
+      disableInput("已结束");
+      document.getElementById("endBtn").classList.add("hidden");
+      showBanner("聊天结束啦~ 记录已清除", "end");
+      setTimeout(() => { connections.forEach(c => { try{c.close();}catch(e){} }); connections = []; }, 1000);
+    }
   }
 }
 
@@ -1025,7 +1147,7 @@ function triggerAIDebounced(text) {
 }
 
 async function callAI(userText) {
-  if (!hostApiKey || roomEnded || aiMuted) return;
+  if (!hostApiKey || roomEnded || aiMuted || MODES[currentMode].noAI) return;
   messagesHistory.push({ role: "user", content: userText });
 
   const aiDiv = displayMsg("ai", "思考中", MODES[currentMode].name, "🐕");
@@ -1070,7 +1192,7 @@ async function callAI(userText) {
 }
 
 async function aiGreetNewUser(nickname) {
-  if (!hostApiKey || roomEnded) return;
+  if (!hostApiKey || roomEnded || MODES[currentMode].noAI) return;
   const mode = MODES[currentMode];
   const prompt = `新朋友「${nickname}」刚加入群聊。用你${mode.name}的风格简短打个招呼欢迎对方。25字以内，自然口语，可以带个颜文字或"汪"。`;
   try {
@@ -1099,7 +1221,7 @@ function guestHandleData(data) {
   switch(data.type) {
     case "room-ended": showEnded(); break;
     case "room-full": alert("房间满了（最多10人）~"); location.reload(); break;
-    case "identity": myName = data.nickname; myAvatar = data.avatar; break;
+    case "identity": myName = data.nickname; myAvatar = data.avatar; document.getElementById("endBtn").classList.remove("hidden"); break;
     case "participants": participants = data.list; updateOnlineBar(); break;
     case "user-joined":
       if (!participants.find(p => p.id === data.id)) participants.push({ id: data.id, name: data.name, avatar: data.avatar, online: true });
@@ -1112,10 +1234,26 @@ function guestHandleData(data) {
       break;
     case "mode-info":
       currentMode = data.mode;
-      document.querySelector(".header .title").textContent = `${data.modeName} · ${data.modeTitle}`;
+      if (MODES[currentMode].noAI) {
+        document.querySelector(".header .title").textContent = "空房间";
+        document.getElementById("muteBtn").classList.add("hidden");
+      } else {
+        document.querySelector(".header .title").textContent = `${data.modeName} · ${data.modeTitle}`;
+        document.getElementById("muteBtn").classList.remove("hidden");
+      }
+      enableInput();
       break;
     case "chat-message":
       displayMsg("other", data.text, data.sender, data.avatar);
+      break;
+    case "voice-message":
+      displayVoiceMsg("other", data.audio, data.duration, data.sender, data.avatar, null, data.transcript || "");
+      break;
+    case "image-message":
+      displayImageMsg("other", data.image, data.sender, data.avatar);
+      break;
+    case "file-message":
+      displayFileMsg("other", data.fileName, data.sizeText, data.sender, data.avatar);
       break;
     case "ai-loading":
       const ld = displayMsg("ai", "思考中", MODES[currentMode].name, "🐕");
@@ -1209,21 +1347,33 @@ function showCreateDialog() {
 function confirmCreate() {
   const key = document.getElementById("createApiKey").value.trim();
   const pwd = document.getElementById("createPassword").value.trim();
-  if (!key || !key.startsWith("sk-")) { alert("请输入有效的 API Key（sk- 开头）"); return; }
-  if (!pwd || pwd.length < 6) { alert("密码至少6位哦~"); return; }
-  hostApiKey = key;
-  roomPassword = pwd;
+  const mode = MODES[currentMode];
+
+  // 空房间模式不需要API Key和密码
+  if (!mode.noAI) {
+    if (!key || !key.startsWith("sk-")) { alert("请输入有效的 API Key"); return; }
+    if (!pwd || pwd.length < 6) { alert("密码至少6位"); return; }
+  }
+  hostApiKey = key || null;
+  roomPassword = pwd || "";
   isHost = true;
   myName = "房主";
   myAvatar = "👑";
 
   // Apply selected mode
-  const mode = MODES[currentMode];
-  messagesHistory = [{ role: "system", content: mode.prompt }];
-  document.querySelector(".header .title").textContent = `${mode.name} · ${mode.title}`;
+  if (mode.noAI) {
+    messagesHistory = [];
+    document.querySelector(".header .title").textContent = "空房间";
+    document.getElementById("muteBtn").classList.add("hidden");
+  } else {
+    messagesHistory = [{ role: "system", content: mode.prompt }];
+    document.querySelector(".header .title").textContent = `${mode.name} · ${mode.title}`;
+    document.getElementById("muteBtn").classList.remove("hidden");
+  }
 
   document.getElementById("createOverlay").classList.add("hidden");
   enterChat();
+  enableInput();
   document.getElementById("endBtn").classList.remove("hidden");
   initPeer("room-" + randomString(8));
 
@@ -1288,7 +1438,7 @@ function recoverHost() {
       document.getElementById("setupScreen").classList.add("hidden");
       enterChat();
       document.getElementById("endBtn").classList.remove("hidden");
-      setConnStatus("重新进入房间...", "warn");
+      setConnStatus("正在回到聊天...", "warn");
       initPeer(rid);
       return;
     }
@@ -1311,15 +1461,20 @@ function enterChat() {
 }
 
 function endRoom() {
-  if (!isHost || !confirm("确定要结束吗？聊天记录会永久删除哦~")) return;
-  roomEnded = true;
-  broadcastToAll({ type: "room-end-notice" });
-  clearCache();
-  localStorage.removeItem("host_rooms");
-  disableInput("已结束");
-  document.getElementById("endBtn").classList.add("hidden");
-  showBanner("聊天结束啦~ 记录已清除", "end");
-  setTimeout(() => { connections.forEach(c => { try{c.close();}catch(e){} }); connections = []; }, 1000);
+  if (!confirm("确定要结束吗？所有人的聊天记录都会删除哦~")) return;
+  if (isHost) {
+    roomEnded = true;
+    broadcastToAll({ type: "room-end-notice" });
+    clearCache();
+    localStorage.removeItem("host_rooms");
+    disableInput("已结束");
+    document.getElementById("endBtn").classList.add("hidden");
+    showBanner("聊天结束啦~ 记录已清除", "end");
+    setTimeout(() => { connections.forEach(c => { try{c.close();}catch(e){} }); connections = []; }, 1000);
+  } else {
+    // 访客请求结束，通知房主
+    if (hostConn?.open) hostConn.send({ type: "request-end" });
+  }
 }
 
 function sendMyMessage() {
@@ -1353,6 +1508,223 @@ function sendMyMessage() {
   }
 }
 
+// ========== VOICE MESSAGE ==========
+let mediaRecorder = null, audioChunks = [], voiceStartTime = 0, voiceTimer = null, voiceCancelled = false;
+let speechRecognition = null, voiceTranscript = "";
+
+function startVoice(e) {
+  e.preventDefault();
+  if (roomEnded) return;
+  voiceCancelled = false;
+  voiceTranscript = "";
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    audioChunks = [];
+    voiceStartTime = Date.now();
+    // 显示录制提示
+    const hint = document.createElement("div");
+    hint.className = "voice-recording-hint";
+    hint.id = "voiceHint";
+    hint.textContent = "松开发送，上滑取消";
+    document.getElementById("inputArea").style.position = "relative";
+    document.getElementById("inputArea").appendChild(hint);
+    document.getElementById("micBtn").classList.add("recording");
+
+    // 启动语音识别
+    try {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SR) {
+        speechRecognition = new SR();
+        speechRecognition.lang = "zh-CN";
+        speechRecognition.continuous = true;
+        speechRecognition.interimResults = true;
+        speechRecognition.onresult = (ev) => {
+          let text = "";
+          for (let i = 0; i < ev.results.length; i++) {
+            text += ev.results[i][0].transcript;
+          }
+          voiceTranscript = text;
+        };
+        speechRecognition.start();
+      }
+    } catch(e) {}
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/mp4' });
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      // 停止语音识别
+      if (speechRecognition) { try { speechRecognition.stop(); } catch(e){} speechRecognition = null; }
+      if (voiceCancelled || audioChunks.length === 0) return;
+      const dur = Math.round((Date.now() - voiceStartTime) / 1000);
+      if (dur < 1) { displayNotice("说话时间太短"); return; }
+      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result;
+        sendVoiceMsg(base64, dur, voiceTranscript);
+      };
+      reader.readAsDataURL(blob);
+    };
+    mediaRecorder.start();
+
+    // 最长60秒自动停止
+    voiceTimer = setTimeout(() => { stopVoice(); }, 60000);
+  }).catch(() => { alert("无法访问麦克风"); });
+}
+
+function stopVoice(e) {
+  if (e) e.preventDefault();
+  clearTimeout(voiceTimer);
+  const hint = document.getElementById("voiceHint");
+  if (hint) hint.remove();
+  document.getElementById("micBtn").classList.remove("recording");
+  if (speechRecognition) { try { speechRecognition.stop(); } catch(e){} }
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
+}
+
+function cancelVoice() {
+  voiceCancelled = true;
+  if (speechRecognition) { try { speechRecognition.abort(); } catch(e){} speechRecognition = null; }
+  stopVoice();
+}
+
+function sendVoiceMsg(base64Data, duration, transcript) {
+  const mid = "m" + (++msgIdCounter) + "_" + Date.now();
+  const text = transcript || "";
+  if (isHost) {
+    displayVoiceMsg("self", base64Data, duration, myName, myAvatar, mid, text);
+    confirmMsgStatus(mid, "ok");
+    broadcastToAll({ type: "voice-message", audio: base64Data, duration, sender: myName, avatar: myAvatar, transcript: text });
+    if (!aiMuted && text) triggerAIDebounced(`${myName}(语音): ${text}`);
+  } else {
+    if (hostConn?.open) {
+      displayVoiceMsg("self", base64Data, duration, myName, myAvatar, mid, text);
+      hostConn.send({ type: "voice-message", audio: base64Data, duration, transcript: text, msgId: mid });
+    }
+  }
+  chatStarted = true;
+}
+
+function displayVoiceMsg(who, audioData, duration, name, avatar, msgId, transcript) {
+  const div = document.createElement("div");
+  div.className = `msg ${who}`;
+  if (msgId) div.dataset.msgId = msgId;
+  const durText = duration + '"';
+  const transcriptHtml = transcript ? `<div class="voice-transcript">${transcript}</div>` : '';
+  if (who === "self") {
+    div.innerHTML = `<div class="bubble"><div class="voice-msg" onclick="playVoice(this)" data-audio="${audioData}"><span class="voice-icon">🔊</span><span class="voice-dur">${durText}</span></div>${transcriptHtml}</div><span class="msg-status">✓</span>`;
+  } else {
+    div.innerHTML = `<span class="avatar">${avatar}</span><div class="bubble"><div class="sender-name">${name}</div><div class="voice-msg" onclick="playVoice(this)" data-audio="${audioData}"><span class="voice-icon">🔊</span><span class="voice-dur">${durText}</span></div>${transcriptHtml}</div>`;
+  }
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return div;
+}
+
+function playVoice(el) {
+  document.querySelectorAll('.voice-msg.playing').forEach(v => v.classList.remove('playing'));
+  el.classList.add('playing');
+  const audio = new Audio(el.dataset.audio);
+  audio.onended = () => el.classList.remove('playing');
+  audio.onerror = () => el.classList.remove('playing');
+  audio.play();
+}
+
+// ========== IMAGE & FILE ==========
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = "";
+  if (file.size > 5 * 1024 * 1024) { alert("文件不能超过5MB"); return; }
+
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    const base64 = reader.result;
+    const isImage = file.type.startsWith("image/");
+    if (isImage) {
+      sendImageMsg(base64, file.name);
+    } else {
+      // 文本类文件读内容给AI
+      sendFileMsg(base64, file.name, file.size, file.type);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function sendImageMsg(base64Data, fileName) {
+  const mid = "m" + (++msgIdCounter) + "_" + Date.now();
+  if (isHost) {
+    displayImageMsg("self", base64Data, myName, myAvatar, mid);
+    confirmMsgStatus(mid, "ok");
+    broadcastToAll({ type: "image-message", image: base64Data, sender: myName, avatar: myAvatar });
+    if (!aiMuted && !MODES[currentMode].noAI) triggerAIDebounced(`${myName}: [发了一张图片]`);
+  } else {
+    if (hostConn?.open) {
+      displayImageMsg("self", base64Data, myName, myAvatar, mid);
+      hostConn.send({ type: "image-message", image: base64Data, msgId: mid });
+    }
+  }
+  chatStarted = true;
+}
+
+function sendFileMsg(base64Data, fileName, fileSize, fileType) {
+  const mid = "m" + (++msgIdCounter) + "_" + Date.now();
+  const sizeText = fileSize < 1024 ? fileSize + 'B' : (fileSize / 1024).toFixed(1) + 'KB';
+  if (isHost) {
+    displayFileMsg("self", fileName, sizeText, myName, myAvatar, mid);
+    confirmMsgStatus(mid, "ok");
+    broadcastToAll({ type: "file-message", fileName, sizeText, sender: myName, avatar: myAvatar });
+    // 文本类文件内容发给AI理解
+    if (!aiMuted && !MODES[currentMode].noAI) {
+      // base64解码获取文件文本内容
+      try {
+        const textContent = atob(base64Data.split(',')[1]);
+        const preview = textContent.substring(0, 2000);
+        triggerAIDebounced(`${myName}: [上传了文件 ${fileName}，内容如下]\n${preview}`);
+      } catch(e) {
+        triggerAIDebounced(`${myName}: [上传了文件 ${fileName}]`);
+      }
+    }
+  } else {
+    if (hostConn?.open) {
+      displayFileMsg("self", fileName, sizeText, myName, myAvatar, mid);
+      hostConn.send({ type: "file-message", fileName, sizeText, fileData: base64Data, msgId: mid });
+    }
+  }
+  chatStarted = true;
+}
+
+function displayImageMsg(who, imgData, name, avatar, msgId) {
+  const div = document.createElement("div");
+  div.className = `msg ${who}`;
+  if (msgId) div.dataset.msgId = msgId;
+  if (who === "self") {
+    div.innerHTML = `<div class="bubble"><img class="chat-img" src="${imgData}" onclick="window.open(this.src)"></div><span class="msg-status">✓</span>`;
+  } else {
+    div.innerHTML = `<span class="avatar">${avatar}</span><div class="bubble"><div class="sender-name">${name}</div><img class="chat-img" src="${imgData}" onclick="window.open(this.src)"></div>`;
+  }
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return div;
+}
+
+function displayFileMsg(who, fileName, sizeText, name, avatar, msgId) {
+  const div = document.createElement("div");
+  div.className = `msg ${who}`;
+  if (msgId) div.dataset.msgId = msgId;
+  const bubble = `<div class="file-bubble"><span class="file-icon">📄</span><div><div class="file-name">${fileName}</div><div class="file-size">${sizeText}</div></div></div>`;
+  if (who === "self") {
+    div.innerHTML = `<div class="bubble">${bubble}</div><span class="msg-status">✓</span>`;
+  } else {
+    div.innerHTML = `<span class="avatar">${avatar}</span><div class="bubble"><div class="sender-name">${name}</div>${bubble}</div>`;
+  }
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return div;
+}
+
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMyMessage(); }
 }
@@ -1363,6 +1735,12 @@ userInput.addEventListener("input", () => {
 });
 
 function randomString(n) { return Math.random().toString(36).substring(2, 2+n); }
+
+// ========== MODE GRID EVENT DELEGATION (WeChat compatibility) ==========
+document.getElementById("modeGrid").addEventListener("click", function(e) {
+  const card = e.target.closest('.mode-card, .mode-card-empty');
+  if (card) selectMode(card);
+});
 
 // ========== INIT ==========
 (function init() {
