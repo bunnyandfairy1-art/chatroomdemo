@@ -8,6 +8,7 @@
   <meta http-equiv="Expires" content="0">
   <title>AI 群聊室</title>
   <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+  <script>window.Peer || document.write('<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.1/dist/peerjs.min.js"><\/script>')</script>
   <style>
     :root {
       --duo-green: #4a90e2;
@@ -49,39 +50,41 @@
     .header .title { flex: 1; font-size: 17px; font-weight: 800; color: var(--duo-text); }
     .header .badge {
       font-size: 12px; font-weight: 700;
-      background: var(--duo-green-light); color: var(--duo-green-dark);
-      padding: 5px 12px; border-radius: 20px; cursor: pointer;
+      background: var(--duo-green); color: white;
+      padding: 6px 14px; border-radius: 20px; cursor: pointer;
       border: none; transition: transform 0.1s;
+      box-shadow: 0 2px 0 var(--duo-green-dark);
     }
-    .header .badge:active { transform: scale(0.95); }
+    .header .badge:active { transform: scale(0.95) translateY(1px); box-shadow: 0 1px 0 var(--duo-green-dark); }
     .header .btn-sm {
       font-size: 12px; font-weight: 700;
-      background: #eef; color: var(--duo-purple);
-      border: none; padding: 5px 12px; border-radius: 20px; cursor: pointer;
+      background: #f0edff; color: #6c5ce7;
+      border: 1.5px solid #d5d0f5; padding: 6px 14px; border-radius: 20px; cursor: pointer;
     }
     .header .btn-sm:active { transform: scale(0.95); }
-    .header .btn-danger { background: #ffe5e5; color: var(--duo-red); }
+    .header .btn-danger { background: #fff0f0; color: #e63946; border: 1.5px solid #ffc8c8; }
 
     /* ===== Online bar ===== */
     .online-bar {
       background: var(--duo-card);
       padding: 8px 14px;
-      font-size: 12px; color: var(--duo-text-light);
+      font-size: 12px; color: var(--duo-text);
       border-bottom: 1px solid var(--duo-border);
       display: flex; align-items: center; gap: 6px;
       flex-wrap: wrap; flex-shrink: 0;
       overflow: hidden; max-height: 60px;
     }
     .online-bar .tag {
-      display: inline-flex; align-items: center; gap: 3px;
-      background: #f0f0f0; padding: 3px 10px; border-radius: 20px;
-      font-size: 12px; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #e8f4fd; padding: 4px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; color: var(--duo-text);
+      border: 1.5px solid #c8e2f8;
       transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .online-bar .tag.offline { opacity: 0.4; transform: scale(0.95); }
-    .online-bar .dot { width: 7px; height: 7px; border-radius: 50%; }
-    .online-bar .dot.on { background: var(--duo-green); }
-    .online-bar .dot.off { background: #ddd; }
+    .online-bar .tag.offline { opacity: 0.35; transform: scale(0.92); background: #f5f5f5; border-color: #e0e0e0; color: #999; }
+    .online-bar .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .online-bar .dot.on { background: #34c759; box-shadow: 0 0 4px rgba(52,199,89,0.5); }
+    .online-bar .dot.off { background: #ccc; }
 
     /* ===== Connection status ===== */
     .conn-status { text-align: center; padding: 6px; font-size: 12px; font-weight: 700; flex-shrink: 0; border-radius: 0; }
@@ -150,9 +153,9 @@
 
     /* System notice */
     .notice {
-      text-align: center; font-size: 12px; color: var(--duo-text-light);
-      padding: 4px 12px; align-self: center;
-      background: #f0f0f0; border-radius: 20px; font-weight: 600;
+      text-align: center; font-size: 12px; color: #5a7a96;
+      padding: 5px 14px; align-self: center;
+      background: #e4f0fa; border-radius: 20px; font-weight: 600;
     }
     .banner {
       border-radius: 12px; padding: 12px 16px;
@@ -178,7 +181,7 @@
       transition: border-color 0.2s;
     }
     .input-area textarea:focus { border-color: var(--duo-blue); }
-    .input-area textarea:disabled { background: #f7f7f7; }
+    .input-area textarea:disabled { background: #f0f7ff; color: #8ab4d8; }
     .input-area .btn-row { display: flex; gap: 6px; }
     .input-area button {
       width: 40px; height: 40px; border-radius: 50%;
@@ -192,7 +195,7 @@
       box-shadow: 0 3px 0 var(--duo-green-dark);
       font-weight: 800;
     }
-    .input-area .send-btn:disabled { background: #e5e5e5; box-shadow: 0 3px 0 #ccc; color: #aaa; }
+    .input-area .send-btn:disabled { background: #b8d4f0; box-shadow: 0 3px 0 #8fb8dc; color: #fff; opacity: 0.6; }
     .input-area .emoji-btn { background: var(--duo-yellow); box-shadow: 0 3px 0 #d4a800; }
     .input-area .attach-btn { background: #a29bfe; box-shadow: 0 3px 0 #6c5ce7; color: white; font-size: 16px; }
     .chat-img { max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer; display: block; }
@@ -582,7 +585,7 @@ const API_URL = "https://api.deepseek.com/v1/chat/completions";
 const MODEL = "deepseek-chat";
 const MAX_USERS = 10;
 const HEARTBEAT_INTERVAL = 5000;
-const HEARTBEAT_TIMEOUT = 18000;
+const HEARTBEAT_TIMEOUT = 30000;
 const AI_DEBOUNCE_MS = 1500;
 const EMOJIS = ['😊','😂','🤣','😍','🥰','😘','😜','🤔','😎','🥳','😭','😱','🤯','🙄','😴','🤝','👍','👎','❤️','🔥','💯','🎉','👏','💪','🙏','✨','🌟','💡','🐑','⚖️','🔨','🌿'];
 const ANIMALS = ['🐱','🐶','🐰','🦊','🐼','🐨','🐯','🦁','🐸','🐧'];
@@ -605,6 +608,20 @@ const AI_PROMPT = `你是"正义的小羊"。群聊里的一员，不是客服�
 - 有人被欺负、被pua、被道德绑架 → 直接开怼施暴方，保护弱势方
 - 有人狡辩偷换概念 → 一句话戳破，不留面子
 - 有人真的痛苦或危险 → 认真对待，给实际建议
+
+# 好人之间吵架——你要劝和
+当你判断吵架双方都是有原则、有道德底线的人（没有人在pua/操控/恶意伤害），只是观点不同或情绪上头：
+- 先拆弹：幽默一下缓和火药味，比如用夸张比喻、自嘲、或把双方观点推到荒诞程度让大家笑。
+- 再搭桥：指出双方其实在意同一件事（比如都在乎公平/都想对方好），只是表达方式不同。
+- 如果知道双方关系（情侣/朋友/同事/家人）：根据关系说适合的话。情侣就说"你们是自己人别用对付外人的方式对彼此"；朋友就说"又不是第一天认识了冷静想想他平时对你怎样"；家人就说"气头上说的话别当真，但感受要认"。
+- 注意：劝和≠和稀泥。如果一方确实做错了，要先指出问题再劝和。"你这件事是做得不对，但我相信你不是那种人，下次注意"。
+- 禁止无脑劝和（"算了算了""都是为你好"这种废话不准说）。
+
+# 鸡毛蒜皮的事——速战速决
+当吵的事情本身就不值得（纠结今天吃啥/马桶盖/挤牙膏/杯子放哪/谁先说的谁后说的）：
+- 一句话点破：这根本不重要。
+- 可以幽默地把事情的微小推到极致让双方觉得好笑（"为了挤牙膏的方向你俩能打到联合国去我也是服了"）。
+- 快速给个折中方案或者随机决定，别让大家继续纠缠。
 
 # 怼人的时候
 - 有火气！不要"我觉得这样不太好哦~"这种温吞水。要敢说"你这不叫关心叫控制""少拿感情绑架人"。
@@ -733,9 +750,12 @@ function playClickSound() {
 function saveCache() {
   if (roomEnded) return;
   try {
-    const data = { roomId, messages: chatBox.innerHTML, participants, myName, myAvatar, isHost };
+    const html = chatBox.innerHTML;
+    // 防止 sessionStorage 溢出（超过 2MB 就不存了）
+    if (html.length > 2 * 1024 * 1024) return;
+    const data = { roomId, messages: html, participants, myName, myAvatar, isHost };
     sessionStorage.setItem('chatcache_' + roomId, JSON.stringify(data));
-  } catch(e) {}
+  } catch(e) { /* quota exceeded - silently skip */ }
 }
 function loadCache(rid) {
   try {
@@ -917,21 +937,29 @@ function stopHeartbeat(conn) {
 // ========== PEER SETUP ==========
 function getPeerConfig() {
   return {
-    debug: 0,
+    debug: 1,
     config: { iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun.cloudflare.com:3478" },
       { urls: "stun:stun.miwifi.com:3478" },
+      // TURN中继 - 对称NAT必须。freeturn.net 是持续维护的免费TURN
       { urls: "turn:freeturn.net:3478", username: "free", credential: "free" },
+      { urls: "turn:freeturn.net:5349", username: "free", credential: "free" },
+      // Open Relay Project (metered.ca 提供的公共TURN，支持TCP穿越严格防火墙)
       { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
-      { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" }
+      { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+      { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
     ]}
   };
 }
 
+let joinAttempts = 0;
+const MAX_JOIN_ATTEMPTS = 3;
+
 function bindGuestConnHandlers() {
   if (!hostConn) return;
   hostConn.on("open", () => {
+    joinAttempts = 0; // 连接成功，重置计数
     setConnStatus("连接成功！", "ok");
     enableInput();
     startHeartbeat(hostConn);
@@ -941,14 +969,36 @@ function bindGuestConnHandlers() {
     hostConn.send({ type: "join", nickname: "用户" + randomString(3), userId: myUserId });
   });
   hostConn.on("error", (e) => {
-    if (!roomEnded) showRoomEnded("房间不存在或已结束<br>请确认房间号是否正确");
+    console.warn("hostConn error:", e);
+    if (roomEnded) return;
+    joinAttempts++;
+    if (joinAttempts >= MAX_JOIN_ATTEMPTS) {
+      showRoomEnded("多次连接失败<br>房间可能不存在或已结束");
+    } else {
+      // 还有重试机会，尝试再连一次
+      setConnStatus(`连接失败，第${joinAttempts}次重试中...`, "warn");
+      setTimeout(() => {
+        if (roomEnded || !peer || peer.destroyed) return;
+        hostConn = peer.connect(roomId, { reliable: true });
+        bindGuestConnHandlers();
+      }, 2000 * joinAttempts);
+    }
   });
 }
 
 function initPeer(id) {
-  peer = new Peer(id, getPeerConfig());
+  const config = getPeerConfig();
+  peer = new Peer(id, config);
+
+  // 信令服务器连接超时检测（15秒连不上信令=网络问题或PeerJS服务不可用）
+  const signalingTimeout = setTimeout(() => {
+    if (peer && !peer.open && !peer.destroyed) {
+      setConnStatus("信令服务器连接超时，可能是网络问题", "err");
+    }
+  }, 15000);
 
   peer.on("open", (pid) => {
+    clearTimeout(signalingTimeout);
     console.log("Peer open:", pid);
     if (isHost) {
       roomId = pid;
@@ -978,9 +1028,28 @@ function initPeer(id) {
   peer.on("error", (err) => {
     console.error("Peer error:", err.type, err);
     if (err.type === 'peer-unavailable') {
-      setConnStatus("目标不在线，等待超时后重试...", "warn");
+      // 信令服务器确认该peer不存在——房主确实不在线
+      if (!isHost && !roomEnded) {
+        joinAttempts++;
+        if (joinAttempts >= MAX_JOIN_ATTEMPTS) {
+          showRoomEnded("房间里已经没有人了<br>聊天已结束");
+        } else {
+          setConnStatus(`房间暂时无响应，第${joinAttempts}次重试...`, "warn");
+          setTimeout(() => {
+            if (roomEnded || !peer || peer.destroyed) return;
+            hostConn = peer.connect(roomId, { reliable: true });
+            bindGuestConnHandlers();
+          }, 3000 * joinAttempts);
+        }
+      }
     } else if (err.type === 'browser-incompatible') {
       alert("当前浏览器不支持WebRTC，请用Chrome/Safari/微信内置浏览器试试");
+    } else if (err.type === 'unavailable-id') {
+      // 房主创建房间时ID冲突，换一个
+      if (isHost) {
+        roomId = roomId + randomString(2);
+        initPeer(roomId);
+      }
     } else {
       setConnStatus("连接异常(" + (err.type||'unknown') + ")，等待重试...", "warn");
     }
@@ -988,8 +1057,18 @@ function initPeer(id) {
 
   peer.on("disconnected", () => {
     if (!roomEnded && peer && !peer.destroyed) {
-      setConnStatus("连接断开，正在重连...", "warn");
-      setTimeout(() => { if (peer && !peer.destroyed) peer.reconnect(); }, 2000);
+      setConnStatus("信令断开，正在重连...", "warn");
+      // 渐进重试：2s, 4s, 8s, 最长15s
+      let retryDelay = 2000;
+      const retrySignaling = () => {
+        if (roomEnded || !peer || peer.destroyed || peer.open) return;
+        peer.reconnect();
+        retryDelay = Math.min(retryDelay * 2, 15000);
+        setTimeout(() => {
+          if (!roomEnded && peer && !peer.destroyed && !peer.open) retrySignaling();
+        }, retryDelay);
+      };
+      setTimeout(retrySignaling, 2000);
     }
   });
 }
@@ -1161,6 +1240,11 @@ function triggerAIDebounced(text) {
 async function callAI(userText) {
   if (!hostApiKey || roomEnded || aiMuted) return;
   messagesHistory.push({ role: "user", content: userText });
+
+  // 防止上下文超限：保留system prompt + 最近40条对话（约20轮）
+  if (messagesHistory.length > 42) {
+    messagesHistory = [messagesHistory[0], ...messagesHistory.slice(-40)];
+  }
 
   const aiDiv = displayMsg("ai", "", AI_NAME, "🐑");
   const aiText = aiDiv.querySelector(".ai-text");
@@ -1504,7 +1588,7 @@ function joinRoom() {
       if (!hostConn?.open && !roomEnded) {
         showRoomEnded("连接超时<br>房间可能不存在或已结束");
       }
-    }, 10000);
+    }, 20000);
   });
 }
 
@@ -1836,9 +1920,9 @@ function randomString(n) { return Math.random().toString(36).substring(2, 2+n); 
         return;
       }
     }
-    // 不是房主，以访客身份加入
+    // 不是房主，以访客身份加入（延迟200ms确保DOM/SDK就绪）
     document.getElementById("joinInput").value = roomFromUrl;
-    joinRoom();
+    setTimeout(() => joinRoom(), 200);
   }
 })();
 
