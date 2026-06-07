@@ -947,16 +947,8 @@ function stopHeartbeat(conn) {
 }
 
 // ========== PEER SETUP ==========
-// PeerJS 信令服务器列表：依次尝试，国内访问 0.peerjs.com 不稳时切换
-const PEER_SERVERS = [
-  null, // 默认 0.peerjs.com (cloud)
-  { host: 'peerjs-server.herokuapp.com', secure: true, port: 443 },
-  { host: 'peerjs.92k.de', secure: true, port: 443 }
-];
-let peerServerIdx = 0;
-
 function getPeerConfig() {
-  const cfg = {
+  return {
     debug: 0,
     config: { iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
@@ -967,26 +959,6 @@ function getPeerConfig() {
       { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" }
     ]}
   };
-  const srv = PEER_SERVERS[peerServerIdx];
-  if (srv) Object.assign(cfg, srv);
-  return cfg;
-}
-
-function switchSignalServer() {
-  // 切换到下一个信令服务器后重新建立 peer
-  peerServerIdx = (peerServerIdx + 1) % PEER_SERVERS.length;
-  if (peer && !peer.destroyed) { try { peer.destroy(); } catch(e){} }
-  setTimeout(() => {
-    const newId = isHost ? roomId : ("guest-" + randomString(8));
-    initPeer(newId);
-    if (!isHost) {
-      // 访客重新发起连接
-      peer.on("open", () => {
-        hostConn = peer.connect(roomId, { reliable: true });
-        bindGuestConnHandlers();
-      });
-    }
-  }, 800);
 }
 
 function bindGuestConnHandlers() {
@@ -1036,28 +1008,13 @@ function initPeer(id) {
   });
 
   peer.on("error", (err) => {
-    console.error("Peer error:", err);
-    const t = err.type || '';
-    if (t === 'peer-unavailable') {
-      // 访客：房间不存在或已结束
-      if (!isHost) showRoomEnded("房间不存在或已结束<br>请确认房间号是否正确");
-      else setConnStatus("房间不存在或已结束", "err");
-    } else if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed') {
-      // 信令服务器连不上（通常是国内网络问题）
-      if (!isHost && !roomEnded) {
-        setConnStatus("网络异常，正在切换信令服务器重试…", "warn");
-        switchSignalServer();
-      } else {
-        setConnStatus("网络异常，正在重试…", "warn");
-      }
-    } else if (t === 'unavailable-id') {
-      // ID冲突，重试
-      setConnStatus("正在重新分配ID…", "warn");
-      setTimeout(() => initPeer(isHost ? roomId : ("guest-" + randomString(8))), 500);
-    } else if (t === 'browser-incompatible') {
+    console.error("Peer error:", err.type, err);
+    if (err.type === 'peer-unavailable') {
+      setConnStatus("目标不在线，等待超时后重试...", "warn");
+    } else if (err.type === 'browser-incompatible') {
       alert("当前浏览器不支持WebRTC，请用Chrome/Safari/微信内置浏览器试试");
     } else {
-      setConnStatus("连接异常: " + t, "err");
+      setConnStatus("连接异常(" + (err.type||'unknown') + ")，等待重试...", "warn");
     }
   });
 
@@ -1577,14 +1534,9 @@ function joinRoom() {
     bindGuestConnHandlers();
     setTimeout(() => {
       if (!hostConn?.open && !roomEnded) {
-        if (peerServerIdx < PEER_SERVERS.length - 1) {
-          setConnStatus("连接慢，切换信令服务器重试...", "warn");
-          switchSignalServer();
-        } else {
-          showRoomEnded("连接超时<br>房间可能不存在、已结束，或网络受限");
-        }
+        showRoomEnded("连接超时<br>房间可能不存在或已结束");
       }
-    }, 12000);
+    }, 10000);
   });
 }
 
