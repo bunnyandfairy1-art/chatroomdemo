@@ -10,21 +10,21 @@
   <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
   <style>
     :root {
-      --duo-green: #58cc02;
-      --duo-green-dark: #46a302;
-      --duo-green-light: #d7ffb8;
-      --duo-blue: #1cb0f6;
-      --duo-blue-dark: #1899d6;
+      --duo-green: #4a90e2;
+      --duo-green-dark: #3478c8;
+      --duo-green-light: #d4e6fa;
+      --duo-blue: #4a90e2;
+      --duo-blue-dark: #3478c8;
       --duo-purple: #ce82ff;
       --duo-orange: #ff9600;
       --duo-red: #ff4b4b;
-      --duo-yellow: #ffc800;
-      --duo-bg: #f7f7f7;
+      --duo-yellow: #f6c544;
+      --duo-bg: #eaf2fc;
       --duo-card: #ffffff;
-      --duo-text: #3c3c3c;
-      --duo-text-light: #777;
-      --duo-border: #e5e5e5;
-      --duo-shadow: 0 2px 0 #e5e5e5;
+      --duo-text: #2c3e50;
+      --duo-text-light: #7a8b9c;
+      --duo-border: #d0e0f0;
+      --duo-shadow: 0 2px 0 #cfdcec;
       --duo-radius: 16px;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -320,9 +320,19 @@
     /* ===== Dog Avatar SVG ===== */
     .dog-avatar {
       width: 32px; height: 32px;
+      border-radius: 8px;
+      object-fit: cover;
     }
     .dog-avatar-big {
-      width: 100px; height: 100px;
+      width: 120px; height: 120px;
+      border-radius: 24px;
+      object-fit: cover;
+    }
+    .hero-sheep {
+      width: 180px; height: 180px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
     }
     .dog-bounce {
       animation: dogBounce 2s ease-in-out infinite;
@@ -431,20 +441,8 @@
 
   <!-- Header -->
   <div class="header hidden" id="headerBar">
-    <svg class="dog-mini dog-bounce" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="52" r="38" fill="#f5d38a"/>
-      <ellipse cx="32" cy="28" rx="12" ry="16" fill="#d4883c" transform="rotate(-15 32 28)"/>
-      <ellipse cx="68" cy="28" rx="12" ry="16" fill="#d4883c" transform="rotate(15 68 28)"/>
-      <circle cx="50" cy="56" r="30" fill="#fae0a5"/>
-      <ellipse cx="50" cy="68" rx="14" ry="10" fill="#fff"/>
-      <ellipse cx="50" cy="64" rx="6" ry="4" fill="#3c3c3c"/>
-      <circle cx="39" cy="50" r="4" fill="#3c3c3c"/>
-      <circle cx="61" cy="50" r="4" fill="#3c3c3c"/>
-      <circle cx="40" cy="49" r="1.5" fill="#fff"/>
-      <circle cx="62" cy="49" r="1.5" fill="#fff"/>
-      <path d="M42 72 Q50 78 58 72" stroke="#d4883c" stroke-width="2" fill="none" stroke-linecap="round"/>
-    </svg>
-    <span class="title">小柴和朋友们</span>
+    <img class="dog-mini dog-bounce" src="sheep-avatar-96.png" alt="正义的小羊">
+    <span class="title">正义的小羊</span>
     <span class="badge" onclick="toggleInvite()">+邀请</span>
     <button class="btn-sm" id="muteBtn" onclick="toggleMute()">🔊</button>
     <button class="btn-sm btn-danger hidden" id="endBtn" onclick="endRoom()">结束</button>
@@ -465,7 +463,7 @@
   <!-- Input -->
   <div class="input-area hidden" id="inputArea">
     <button class="emoji-btn" onclick="toggleEmoji()">😊</button>
-    <textarea id="userInput" rows="1" placeholder="说点什么吧~ @小柴 可以提问" onkeydown="handleKey(event)"></textarea>
+    <textarea id="userInput" rows="1" placeholder="说点什么吧~ @正义的小羊 可以提问" onkeydown="handleKey(event)"></textarea>
     <div class="btn-row">
       <button class="attach-btn" onclick="document.getElementById('fileInput').click()">+</button>
       <button class="send-btn" id="sendBtn" onclick="sendMyMessage()">↑</button>
@@ -476,34 +474,17 @@
   <!-- Setup -->
   <div class="setup-screen" id="setupScreen">
     <div class="mascot">
-      <svg class="dog-avatar-big dog-bounce dog-blink" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="52" r="42" fill="#f5d38a"/>
-        <ellipse cx="28" cy="24" rx="14" ry="18" fill="#d4883c" transform="rotate(-15 28 24)"/>
-        <ellipse cx="72" cy="24" rx="14" ry="18" fill="#d4883c" transform="rotate(15 72 24)"/>
-        <circle cx="50" cy="56" r="34" fill="#fae0a5"/>
-        <ellipse cx="50" cy="70" rx="16" ry="12" fill="#fff"/>
-        <ellipse cx="50" cy="65" rx="7" ry="5" fill="#3c3c3c"/>
-        <g class="eye"><circle cx="37" cy="50" r="5" fill="#3c3c3c"/></g>
-        <g class="eye"><circle cx="63" cy="50" r="5" fill="#3c3c3c"/></g>
-        <circle cx="38" cy="48" r="2" fill="#fff"/>
-        <circle cx="64" cy="48" r="2" fill="#fff"/>
-        <path d="M40 75 Q50 82 60 75" stroke="#d4883c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        <ellipse cx="26" cy="60" rx="6" ry="4" fill="#f8b4b4" opacity="0.6"/>
-        <ellipse cx="74" cy="60" rx="6" ry="4" fill="#f8b4b4" opacity="0.6"/>
-        <g class="dog-tail">
-          <path d="M85 75 Q95 60 88 50" stroke="#d4883c" stroke-width="5" fill="none" stroke-linecap="round"/>
-        </g>
-      </svg>
+      <img class="hero-sheep dog-bounce" src="sheep-hero-512.png" alt="正义的小羊">
     </div>
     <h2>群聊室</h2>
     <p class="desc">最多10人 · 阅后即焚 · 不留痕迹</p>
 
     <div class="room-options">
       <div class="room-card" onclick="showCreateDialog('ai')">
-        <span class="rc-icon">🐕</span>
+        <span class="rc-icon">🐑</span>
         <div class="rc-info">
           <div class="rc-title">AI 群聊</div>
-          <div class="rc-desc">小柴参与聊天，能回答问题、接话、分析讨论</div>
+          <div class="rc-desc">正义的小羊参与聊天，能回答问题、接话、分析讨论</div>
         </div>
       </div>
       <div class="room-card" onclick="showCreateDialog('empty')">
@@ -542,17 +523,7 @@
   <!-- Ended overlay -->
   <div class="overlay hidden" id="endedOverlay">
     <div class="card">
-      <svg class="dog-avatar-big" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto 12px;">
-        <circle cx="50" cy="52" r="42" fill="#f5d38a"/>
-        <ellipse cx="28" cy="24" rx="14" ry="18" fill="#d4883c" transform="rotate(-15 28 24)"/>
-        <ellipse cx="72" cy="24" rx="14" ry="18" fill="#d4883c" transform="rotate(15 72 24)"/>
-        <circle cx="50" cy="56" r="34" fill="#fae0a5"/>
-        <ellipse cx="50" cy="70" rx="16" ry="12" fill="#fff"/>
-        <ellipse cx="50" cy="65" rx="7" ry="5" fill="#3c3c3c"/>
-        <path d="M35 50 Q37 54 40 50" stroke="#3c3c3c" stroke-width="2.5" fill="none"/>
-        <path d="M60 50 Q63 54 65 50" stroke="#3c3c3c" stroke-width="2.5" fill="none"/>
-        <path d="M40 76 Q50 72 60 76" stroke="#d4883c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-      </svg>
+      <img class="dog-avatar-big" src="sheep-avatar-256.png" alt="正义的小羊" style="margin:0 auto 12px;display:block;">
       <h2>聊天结束</h2>
       <p>所有记录已清除<br>下次再聊~</p>
       <button class="btn-full" onclick="backToSetup()">再开一局</button>
@@ -584,16 +555,16 @@ const MAX_USERS = 10;
 const HEARTBEAT_INTERVAL = 5000;
 const HEARTBEAT_TIMEOUT = 18000;
 const AI_DEBOUNCE_MS = 1500;
-const EMOJIS = ['😊','😂','🤣','😍','🥰','😘','😜','🤔','😎','🥳','😭','😱','🤯','🙄','😴','🤝','👍','👎','❤️','🔥','💯','🎉','👏','💪','🙏','✨','🌟','💡','🐶','🐕','🦴','🐾'];
+const EMOJIS = ['😊','😂','🤣','😍','🥰','😘','😜','🤔','😎','🥳','😭','😱','🤯','🙄','😴','🤝','👍','👎','❤️','🔥','💯','🎉','👏','💪','🙏','✨','🌟','💡','🐑','⚖️','🔨','🌿'];
 const ANIMALS = ['🐱','🐶','🐰','🦊','🐼','🐨','🐯','🦁','🐸','🐧'];
 
 // ========== AI CONFIG ==========
-const AI_NAME = "小柴";
-const AI_PROMPT = `你是"小柴"，一个群聊里的AI参与者。你什么都能聊，但聊到有争议的事你绝不和稀泥。
+const AI_NAME = "正义的小羊";
+const AI_PROMPT = `你是"正义的小羊"，一只戴着博士帽、穿着黑色法袍、手持法槌的小羊法官形象。你以这个身份在多人群聊里和大家一起聊天——你不是冷冰冰的客服或助手，而是群里平等的一员，像一个很聪明、有效率、又正义的朋友。你什么都能聊，但聊到有争议的事你绝不和稀泥。
 
 要求：
-- 日常闲聊时轻松自然，像朋友一样接话、开玩笑、分享想法
-- 一旦涉及争议、矛盾、是非问题，立刻切换到严肃模式：基于事实和逻辑给出明确判断
+- 日常闲聊时轻松自然，像朋友一样接话、开玩笑、分享想法，不要时刻强调"小羊法官"身份，只在合适时偶尔流露
+- 一旦涉及争议、矛盾、是非问题，立刻切换到严肃模式：基于事实和逻辑给出明确判断，可以稍微"敲一下法槌"的态度
 - 判断时善于引用常识、法律常识、社会规范、心理学洞察等来支撑观点，让人信服
 - 如果有人狡辩、逃避责任、偷换概念、道德绑架，精准拆解逻辑漏洞，对事不对人
 - 讨论陷入死循环时，主动总结分歧，给出你认为更合理的结论并说明为什么
@@ -602,19 +573,7 @@ const AI_PROMPT = `你是"小柴"，一个群聊里的AI参与者。你什么都
 - 口语化，像一个很聪明、有效率、又正义的朋友
 - 看到所有人的发言，有上下文记忆，回复连贯`;
 
-const DOG_SVG_SMALL = `<svg class="dog-avatar dog-bounce" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="50" cy="52" r="38" fill="#f5d38a"/>
-  <ellipse cx="32" cy="28" rx="12" ry="16" fill="#d4883c" transform="rotate(-15 32 28)"/>
-  <ellipse cx="68" cy="28" rx="12" ry="16" fill="#d4883c" transform="rotate(15 68 28)"/>
-  <circle cx="50" cy="56" r="30" fill="#fae0a5"/>
-  <ellipse cx="50" cy="68" rx="14" ry="10" fill="#fff"/>
-  <ellipse cx="50" cy="64" rx="6" ry="4" fill="#3c3c3c"/>
-  <circle cx="39" cy="50" r="4" fill="#3c3c3c"/>
-  <circle cx="61" cy="50" r="4" fill="#3c3c3c"/>
-  <circle cx="40" cy="49" r="1.5" fill="#fff"/>
-  <circle cx="62" cy="49" r="1.5" fill="#fff"/>
-  <path d="M42 72 Q50 78 58 72" stroke="#d4883c" stroke-width="2" fill="none" stroke-linecap="round"/>
-</svg>`;
+const DOG_SVG_SMALL = `<img class="dog-avatar dog-bounce" src="sheep-avatar-96.png" alt="正义的小羊">`;
 
 // ========== STATE ==========
 let peer = null, connections = [], hostConn = null;
@@ -762,7 +721,7 @@ function displayMsg(type, text, name, avatar, msgId) {
 }
 
 function processAtMentions(html) {
-  return html.replace(/@(小柴|[\u4e00-\u9fa5a-zA-Z0-9_]+)/g, '<span class="mention">@$1</span>');
+  return html.replace(/@(小羊|[\u4e00-\u9fa5a-zA-Z0-9_]+)/g, '<span class="mention">@$1</span>');
 }
 
 function confirmMsgStatus(msgId, status) {
@@ -1130,7 +1089,7 @@ async function callAI(userText) {
   if (!hostApiKey || roomEnded || aiMuted) return;
   messagesHistory.push({ role: "user", content: userText });
 
-  const aiDiv = displayMsg("ai", "", AI_NAME, "🐕");
+  const aiDiv = displayMsg("ai", "", AI_NAME, "🐑");
   const aiText = aiDiv.querySelector(".ai-text");
   if (aiText) { aiText.innerHTML = '<span class="typing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>'; }
   broadcastToAll({ type: "ai-loading" });
@@ -1184,7 +1143,7 @@ async function aiGreetNewUser(nickname) {
     const data = await resp.json();
     const reply = data.choices?.[0]?.message?.content?.trim();
     if (reply) {
-      displayMsg("ai", reply, AI_NAME, "🐕");
+      displayMsg("ai", reply, AI_NAME, "🐑");
       messagesHistory.push({ role: "assistant", content: reply });
       broadcastToAll({ type: "ai-end", fullContent: reply });
       saveCache();
@@ -1229,7 +1188,7 @@ function guestHandleData(data) {
       displayFileMsg("other", data.fileName, data.sizeText, data.sender, data.avatar);
       break;
     case "ai-loading": {
-      const ld = displayMsg("ai", "", AI_NAME, "🐕");
+      const ld = displayMsg("ai", "", AI_NAME, "🐑");
       ld.classList.add("ai-streaming");
       const ldText = ld.querySelector(".ai-text");
       if (ldText) ldText.innerHTML = '<span class="typing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
@@ -1254,13 +1213,13 @@ function guestHandleData(data) {
         streaming.classList.remove("ai-streaming");
       } else {
         // 没收到loading/delta，直接显示完整消息
-        displayMsg("ai", data.fullContent, AI_NAME, "🐕");
+        displayMsg("ai", data.fullContent, AI_NAME, "🐑");
       }
       playAIDoneSound();
       break;
     }
     case "ai-error":
-      displayMsg("ai", "出错了：" + data.error, AI_NAME, "🐕");
+      displayMsg("ai", "出错了：" + data.error, AI_NAME, "🐑");
       break;
     case "msg-ack":
       confirmMsgStatus(data.msgId, data.status);
@@ -1397,7 +1356,7 @@ function showCreateDialog(type) {
     document.getElementById("aiFields").style.display = "none";
   } else {
     document.getElementById("createTitle").textContent = "创建AI群聊";
-    document.getElementById("createDesc").textContent = "小柴会参与聊天，需要DeepSeek API Key";
+    document.getElementById("createDesc").textContent = "正义的小羊会参与聊天，需要DeepSeek API Key";
     document.getElementById("aiFields").style.display = "";
   }
 }
@@ -1421,7 +1380,7 @@ function confirmCreate() {
     document.getElementById("muteBtn").classList.add("hidden");
   } else {
     messagesHistory = [{ role: "system", content: AI_PROMPT }];
-    document.querySelector(".header .title").textContent = "小柴群聊";
+    document.querySelector(".header .title").textContent = "小羊群聊";
   }
 
   document.getElementById("createOverlay").classList.add("hidden");
@@ -1681,7 +1640,7 @@ function randomString(n) { return Math.random().toString(36).substring(2, 2+n); 
         document.getElementById("setupScreen").classList.add("hidden");
         enterChat();
         enableInput();
-        document.querySelector(".header .title").textContent = hostApiKey ? "小柴群聊" : "群聊房间";
+        document.querySelector(".header .title").textContent = hostApiKey ? "小羊群聊" : "群聊房间";
         if (!hostApiKey) document.getElementById("muteBtn").classList.add("hidden");
         document.getElementById("endBtn").classList.remove("hidden");
         setConnStatus("正在回到聊天...", "warn");
