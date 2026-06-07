@@ -976,11 +976,15 @@ function getPeerConfig() {
   ];
   return {
     debug: 1,
-    config: { iceServers: [...stuns, ...(cachedTurnServers || [])] }
+    config: {
+      iceServers: [...stuns, ...(cachedTurnServers || [])],
+      // 强制走 TURN 中继（诊断模式），确认 TURN 没问题后改回 "all" 可启用直连
+      iceTransportPolicy: "relay"
+    }
   };
 }
 
-function initPeer(id) {
+function initPeer(id, onOpen) {
   peer = new Peer(id, getPeerConfig());
 
   peer.on("open", (pid) => {
@@ -997,6 +1001,8 @@ function initPeer(id) {
       // 友好引导
       displayNotice("点击顶部「+邀请」把房间分享给好友");
     }
+    // 访客逻辑通过回调传入，避免重复绑定 peer.on("open")
+    if (typeof onOpen === "function") onOpen(pid);
   });
 
   peer.on("connection", (conn) => {
@@ -1422,12 +1428,11 @@ async function retryJoinRoom() {
   if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
   enableInput();
   document.getElementById("endBtn").classList.remove("hidden");
-  // 重新加入（与 joinRoom 相同的简单直连结构）
+  // 重新加入
   disableInput("正在重新连接...");
   setConnStatus("正在重新连接...", "warn");
   await generateTurnCredentials();
-  initPeer("guest-" + randomString(8));
-  peer.on("open", () => {
+  initPeer("guest-" + randomString(8), () => {
     setConnStatus("正在加入房间...", "warn");
     hostConn = peer.connect(roomId, { reliable: true });
     hostConn.on("open", () => {
@@ -1637,9 +1642,7 @@ async function joinRoom() {
   disableInput("正在连接...");
   setConnStatus("正在连接...", "warn");
   await generateTurnCredentials();
-  initPeer("guest-" + randomString(8));
-
-  peer.on("open", () => {
+  initPeer("guest-" + randomString(8), () => {
     setConnStatus("正在加入房间...", "warn");
     hostConn = peer.connect(roomId, { reliable: true });
     hostConn.on("open", () => {
