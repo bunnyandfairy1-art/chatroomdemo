@@ -934,10 +934,9 @@ function stopHeartbeat(conn) {
 }
 
 // ========== PEER SETUP ==========
-// Metered TURN 凭证 - 直接在浏览器端生成，无需服务器
-// 注意：TURN_DOMAIN 必须是实际 relay 域名（global.relay.metered.ca），不是面板子域名
-const TURN_DOMAIN = "global.relay.metered.ca";
+// Metered TURN - 通过 REST API 获取凭证（API 支持 CORS，可直接浏览器调用）
 const TURN_SECRET = "y9m55RWUMsNPi2_ZCJMqqgPPu6Q92Bc6cp2iA0_dqX7fISpl";
+const TURN_API = `https://sususuxx.metered.live/api/v1/turn/credentials?secretKey=${TURN_SECRET}`;
 let cachedTurnServers = null;
 let turnCredTime = 0;
 
@@ -945,25 +944,15 @@ async function generateTurnCredentials() {
   // 凭证23小时内有效（留1小时安全余量），过期自动刷新
   if (cachedTurnServers && (Date.now() - turnCredTime < 23 * 3600 * 1000)) return cachedTurnServers;
   try {
-    const username = String(Math.floor(Date.now() / 1000) + 86400); // 24小时有效
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw", encoder.encode(TURN_SECRET),
-      { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-    );
-    const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(username + ":" + TURN_DOMAIN));
-    const credential = btoa(String.fromCharCode(...new Uint8Array(sig)));
-    cachedTurnServers = [
-      { urls: `turn:${TURN_DOMAIN}:80?transport=udp`, username, credential },
-      { urls: `turn:${TURN_DOMAIN}:80?transport=tcp`, username, credential },
-      { urls: `turn:${TURN_DOMAIN}:443?transport=tcp`, username, credential },
-      { urls: `turns:${TURN_DOMAIN}:443?transport=tcp`, username, credential },
-    ];
+    const resp = await fetch(TURN_API);
+    if (!resp.ok) throw new Error(`TURN API ${resp.status}`);
+    const iceServers = await resp.json();
+    cachedTurnServers = iceServers.filter(s => s.urls && (s.urls.startsWith("turn:") || s.urls.startsWith("turns:")));
     turnCredTime = Date.now();
-    console.log("TURN 凭证生成成功");
+    console.log("TURN 凭证获取成功:", cachedTurnServers.length, "条");
     return cachedTurnServers;
   } catch(e) {
-    console.warn("TURN 凭证生成失败:", e);
+    console.warn("TURN 凭证获取失败:", e);
     return [];
   }
 }
@@ -978,8 +967,7 @@ function getPeerConfig() {
     debug: 1,
     config: {
       iceServers: [...stuns, ...(cachedTurnServers || [])],
-      // 强制走 TURN 中继（诊断模式），确认 TURN 没问题后改回 "all" 可启用直连
-      iceTransportPolicy: "relay"
+      iceTransportPolicy: "all"
     }
   };
 }
