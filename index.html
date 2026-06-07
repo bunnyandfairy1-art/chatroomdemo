@@ -72,19 +72,36 @@
       border-bottom: 1px solid var(--duo-border);
       display: flex; align-items: center; gap: 6px;
       flex-wrap: wrap; flex-shrink: 0;
-      overflow: hidden; max-height: 60px;
+      overflow: visible; max-height: 60px;
+      position: sticky; top: 0; z-index: 20;
     }
     .online-bar .tag {
       display: inline-flex; align-items: center; gap: 4px;
       background: #e8f4fd; padding: 4px 12px; border-radius: 20px;
       font-size: 12px; font-weight: 700; color: var(--duo-text);
-      border: 1.5px solid #c8e2f8;
+      border: 1.5px solid #c8e2f8; position: relative;
       transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .online-bar .tag.offline { opacity: 0.35; transform: scale(0.92); background: #f5f5f5; border-color: #e0e0e0; color: #999; }
     .online-bar .dot { width: 8px; height: 8px; border-radius: 50%; }
     .online-bar .dot.on { background: #34c759; box-shadow: 0 0 4px rgba(52,199,89,0.5); }
     .online-bar .dot.off { background: #ccc; }
+    /* 打字动画铅笔 */
+    .online-bar .tag .typing-pencil {
+      display: none; font-size: 11px; margin-left: 2px;
+      animation: pencilWrite 0.6s ease-in-out infinite alternate;
+    }
+    .online-bar .tag.is-typing .typing-pencil { display: inline-block; }
+    .online-bar .tag.is-typing { border-color: #f6c544; background: #fff9e6; }
+    @keyframes pencilWrite {
+      0% { transform: rotate(-12deg) translateY(0); }
+      100% { transform: rotate(12deg) translateY(-2px); }
+    }
+    /* 飞向头像的表情 */
+    .fly-emoji {
+      position: fixed; font-size: 36px; z-index: 100; pointer-events: none;
+      transition: none;
+    }
 
     /* ===== Connection status ===== */
     .conn-status { text-align: center; padding: 6px; font-size: 12px; font-weight: 700; flex-shrink: 0; border-radius: 0; }
@@ -198,6 +215,25 @@
     .input-area .send-btn:disabled { background: #b8d4f0; box-shadow: 0 3px 0 #8fb8dc; color: #fff; opacity: 0.6; }
     .input-area .emoji-btn { background: var(--duo-yellow); box-shadow: 0 3px 0 #d4a800; }
     .input-area .attach-btn { background: #a29bfe; box-shadow: 0 3px 0 #6c5ce7; color: white; font-size: 16px; }
+
+    /* Quick AI action bar */
+    .quick-actions {
+      display: none; padding: 6px 12px; gap: 6px;
+      background: var(--duo-card); border-top: 1px solid var(--duo-border);
+      overflow-x: auto; white-space: nowrap; flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .quick-actions::-webkit-scrollbar { display: none; }
+    .quick-actions.show { display: flex; }
+    .qa-btn {
+      flex-shrink: 0; padding: 6px 14px; border-radius: 18px;
+      border: 2px solid #d0e8ff; background: #f0f7ff;
+      color: var(--duo-green-dark); font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .qa-btn:active { transform: scale(0.93); background: #d4e6fa; }
+    .qa-btn.highlight { background: var(--duo-green-light); border-color: var(--duo-green); }
     .chat-img { max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer; display: block; }
     .chat-img:active { opacity: 0.8; }
     .file-bubble {
@@ -492,10 +528,19 @@
   <!-- Mention picker -->
   <div class="mention-picker" id="mentionPicker"></div>
 
+  <!-- Quick AI actions (scrollable, AI rooms only) -->
+  <div class="quick-actions" id="quickActions">
+    <button class="qa-btn" onclick="mentionSheep()">@小羊</button>
+    <button class="qa-btn" onclick="askSheep('judge')">⚖️ 来评理</button>
+    <button class="qa-btn" onclick="askSheep('summarize')">📝 总结一下</button>
+    <button class="qa-btn" onclick="askSheep('analyze')">🔍 帮分析</button>
+    <button class="qa-btn" onclick="askSheep('opinion')">💡 你咋看</button>
+  </div>
+
   <!-- Input -->
   <div class="input-area hidden" id="inputArea">
     <button class="emoji-btn" onclick="toggleEmoji()">😊</button>
-    <textarea id="userInput" rows="1" placeholder="说点什么吧~ @正义的小羊 可以提问" onkeydown="handleKey(event)"></textarea>
+    <textarea id="userInput" rows="1" placeholder="说点什么吧~" onkeydown="handleKey(event)"></textarea>
     <div class="btn-row">
       <button class="attach-btn" onclick="document.getElementById('fileInput').click()">+</button>
       <button class="send-btn" id="sendBtn" onclick="sendMyMessage()">↑</button>
@@ -516,7 +561,7 @@
         <span class="rc-icon">🐑</span>
         <div class="rc-info">
           <div class="rc-title">AI 群聊</div>
-          <div class="rc-desc">正义的小羊参与聊天，能回答问题、接话、分析讨论</div>
+          <div class="rc-desc">正义的小羊旁听，点「问小羊」或 @她 才说话</div>
         </div>
       </div>
       <div class="room-card" onclick="showCreateDialog('empty')">
@@ -587,6 +632,7 @@ const MODEL = "deepseek-chat";
 const MAX_USERS = 10;
 const HEARTBEAT_INTERVAL = 5000;
 const HEARTBEAT_TIMEOUT = 30000;
+// legacy constants, reserved for future use
 const AI_DEBOUNCE_MS = 1500;
 const EMOJIS = ['😊','😂','🤣','😍','🥰','😘','😜','🤔','😎','🥳','😭','😱','🤯','🙄','😴','🤝','👍','👎','❤️','🔥','💯','🎉','👏','💪','🙏','✨','🌟','💡','🐑','⚖️','🔨','🌿'];
 const ANIMALS = ['🐱','🐶','🐰','🦊','🐼','🐨','🐯','🦁','🐸','🐧'];
@@ -640,14 +686,31 @@ const AI_PROMPT = `你是"正义的小羊"。群聊里的一员，不是客服�
 - 大多数时候就是个有趣的群友，别时刻当法官
 - 不疑神疑鬼，普通吐槽和玩笑别当成pua
 - 不说教不啰嗦
-- 有记忆，追踪上下文，回复连贯`;
+- 有记忆，追踪上下文，回复连贯
+
+# 你的行为模式
+- 你平时旁听，只有被点名才会说话（快捷按钮或@你）
+- 被叫到时，先看最近的聊天记录了解上下文，再针对性回应
+- 不要复述聊天记录内容，直接说你自己的想法
+- 如果被人问"你怎么看"，像朋友一样自然地说
+
+# 表情反应标签（非常重要！）
+在回复的【最开头】放标签，系统会读取并展示动画，标签不会显示给用户。规则：
+- 评理/判断时：做得好的一方放 [REACT:flower:X号]，做得不对的一方放 [REACT:poop:Y号]
+  例：[REACT:flower:2号][REACT:poop:3号] 你正文内容...
+- 大家都开心/气氛好：[REACT:happy:all]
+- 赞扬某人：[REACT:thumbsup:X号]
+- 可以组合多个标签，最多3个
+- X号用对方的编号（1号、2号等），不确定编号就不放标签
+- 标签必须放在回复最前面，和正文之间加一个空格
+- 不是每次都要放，只在有明确情绪指向时才放`;
 
 const DOG_SVG_SMALL = `<img class="dog-avatar dog-bounce" src="sheep-avatar-96.png" alt="正义的小羊">`;
 
 // ========== STATE ==========
 let peer = null, connections = [], hostConn = null;
 let isHost = false, roomId = null, roomEnded = false;
-let myName = "", myAvatar = "", hostApiKey = null;
+let myName = localStorage.getItem("chat_user_name") || "", myAvatar = localStorage.getItem("chat_user_avatar") || "", hostApiKey = null;
 // 持久用户身份：每个浏览器生成唯一ID，localStorage保存名称和头像
 let myUserId = localStorage.getItem("chat_user_id") || (() => { const id = "u-" + Math.random().toString(36).slice(2,10); localStorage.setItem("chat_user_id", id); return id; })();
 let aiMuted = false, avatarIdx = 0, inviteAutoShown = false, chatStarted = false;
@@ -656,7 +719,6 @@ let msgIdCounter = 0;
 let heartbeatTimers = new Map();
 let reconnectCount = 0;
 let isReconnecting = false;
-let aiDebounceTimer = null, pendingAiText = "";
 let messagesHistory = [{
   role: "system",
   content: AI_PROMPT
@@ -833,7 +895,7 @@ function updateOnlineBar() {
   if (participants.length === 0) { bar.classList.add("hidden"); return; }
   bar.classList.remove("hidden");
   bar.innerHTML = participants.map(p =>
-    `<span class="tag ${p.online?'':'offline'}"><span class="dot ${p.online?'on':'off'}"></span>${p.avatar} ${p.name}</span>`
+    `<span class="tag ${p.online?'':'offline'}" data-name="${p.name}"><span class="dot ${p.online?'on':'off'}"></span>${p.avatar} ${p.name}<span class="typing-pencil">✏️</span></span>`
   ).join('');
 }
 
@@ -843,8 +905,9 @@ function disableInput(msg) {
 }
 function enableInput() {
   userInput.disabled = false;
-  userInput.placeholder = hostApiKey ? `说点什么吧~ @${AI_NAME} 可以提问` : "说点什么吧~";
+  userInput.placeholder = "说点什么吧~";
   document.getElementById("sendBtn").disabled = false;
+  document.getElementById("quickActions").classList.add("show");
 }
 
 function getNextAvatar() { return ANIMALS[avatarIdx++ % ANIMALS.length]; }
@@ -1017,9 +1080,9 @@ function initPeer(id, onOpen) {
   peer.on("error", (err) => {
     console.error("Peer error:", err.type, err);
     if (err.type === 'peer-unavailable') {
-      // 信令服务器确认该peer不存在——房主不在线
+      // 信令服务器确认该peer不存在——房间已结束或不存在
       if (!isHost && !roomEnded) {
-        showRoomEnded("房间暂时没人响应", true);
+        showRoomEnded("这个房间已经结束了", false, "房间不存在或已被关闭<br>你可以创建一个新房间");
       }
     } else if (err.type === 'browser-incompatible') {
       alert("当前浏览器不支持WebRTC，请用Chrome/Safari/微信内置浏览器试试");
@@ -1068,24 +1131,26 @@ function hostHandleData(conn, data) {
       broadcastParticipants();
       displayNotice(`${avatar} ${existing.name} 回来了`);
     } else {
-      // 新用户：分配头像和名字
+      // 新用户：分配头像和编号名
       const avatar = getNextAvatar();
-      conn.guestInfo = { name: nickname, avatar, id: conn.peer, userId };
-      participants.push({ id: conn.peer, userId, name: nickname, avatar, online: true });
+      const num = participants.length + 1;
+      const assignedName = num + "号";
+      conn.guestInfo = { name: assignedName, avatar, id: conn.peer, userId };
+      participants.push({ id: conn.peer, userId, name: assignedName, avatar, online: true });
       updateOnlineBar();
 
-      conn.send({ type: "identity", nickname, avatar });
+      conn.send({ type: "identity", nickname: assignedName, avatar });
       conn.send({ type: "participants", list: participants });
       conn.send({ type: "ai-mute-state", muted: aiMuted });
       syncHistoryTo(conn);
 
-      broadcastToAll({ type: "user-joined", name: nickname, avatar, id: conn.peer }, conn);
+      broadcastToAll({ type: "user-joined", name: assignedName, avatar, id: conn.peer }, conn);
       broadcastParticipants();
-      displayNotice(`${avatar} ${nickname} 加入了聊天`);
+      displayNotice(`${avatar} ${assignedName} 加入了聊天`);
       playJoinSound();
       chatStarted = true;
 
-      if (!aiMuted) aiGreetNewUser(nickname);
+      if (!aiMuted) aiGreetNewUser(assignedName);
     }
 
   } else if (data.type === "chat-message") {
@@ -1098,7 +1163,12 @@ function hostHandleData(conn, data) {
     displayMsg("other", data.text, sender, avatar);
     playReceiveSound();
 
-    if (!aiMuted) triggerAIDebounced(`${sender}: ${data.text}`);
+    // 记录到 AI 上下文
+    if (hostApiKey) messagesHistory.push({ role: "user", content: `${sender}: ${data.text}` });
+    // 只有被 @或自然语言才触发 AI
+    if (!aiMuted && shouldTriggerAI(data.text)) {
+      callAIWithPrompt(`${sender} 叫你呢，你看看上面聊的，回应一下`);
+    }
 
   } else if (data.type === "image-message") {
     const sender = conn.guestInfo?.name || "访客";
@@ -1107,7 +1177,7 @@ function hostHandleData(conn, data) {
     conn.send({ type: "msg-ack", msgId: mid, status: "ok" });
     broadcastToAll({ type: "image-message", image: data.image, sender, avatar }, conn);
     displayImageMsg("other", data.image, sender, avatar);
-    if (!aiMuted) triggerAIDebounced(`${sender}: [发了一张图片]`);
+    if (hostApiKey) messagesHistory.push({ role: "user", content: `${sender}: [发了一张图片]` });
 
   } else if (data.type === "file-message") {
     const sender = conn.guestInfo?.name || "访客";
@@ -1116,16 +1186,33 @@ function hostHandleData(conn, data) {
     conn.send({ type: "msg-ack", msgId: mid, status: "ok" });
     broadcastToAll({ type: "file-message", fileName: data.fileName, sizeText: data.sizeText, sender, avatar }, conn);
     displayFileMsg("other", data.fileName, data.sizeText, sender, avatar);
-    if (!aiMuted && data.fileData) {
-      try {
-        const textContent = atob(data.fileData.split(',')[1]);
-        const preview = textContent.substring(0, 2000);
-        triggerAIDebounced(`${sender}: [上传了文件 ${data.fileName}，内容如下]\n${preview}`);
-      } catch(e) {
-        triggerAIDebounced(`${sender}: [上传了文件 ${data.fileName}]`);
-      }
+    if (hostApiKey) messagesHistory.push({ role: "user", content: `${sender}: [上传了文件 ${data.fileName}]` });
+
+  } else if (data.type === "request-ai") {
+    // 访客请求 AI 回应
+    const sender = conn.guestInfo?.name || "访客";
+    const intentLabels = {
+      judge: "来评理", summarize: "总结一下",
+      analyze: "帮分析", opinion: "你咋看"
+    };
+    const label = intentLabels[data.intent] || "来评理";
+    displayNotice(`${sender} 点了「${label}」`);
+    broadcastToAll({ type: "ai-trigger", name: sender, intent }, conn);
+
+    if (!aiMuted && hostApiKey) {
+      const prompts = {
+        judge: `${sender} 请你评评理，客观公正地说`,
+        summarize: `${sender} 请你总结一下大家聊的内容`,
+        analyze: `${sender} 请你分析一下现在的情况`,
+        opinion: `${sender} 想听听你的看法`
+      };
+      callAIWithPrompt(prompts[data.intent] || prompts.judge);
     }
 
+  } else if (data.type === "typing") {
+    const name = conn.guestInfo?.name || "访客";
+    showTypingIndicator(name);
+    broadcastToAll({ type: "typing", name }, conn);
   } else if (data.type === "msg-ack") {
     confirmMsgStatus(data.msgId, data.status);
   } else if (data.type === "request-end") {
@@ -1188,33 +1275,184 @@ function broadcastToAll(data, exclude) {
 }
 function broadcastParticipants() { broadcastToAll({ type: "participants", list: participants }); }
 
-// AI debounce - 多人在线时等大家说完再回，单人时立即回复
-function triggerAIDebounced(text) {
-  pendingAiText += "\n" + text;
-  clearTimeout(aiDebounceTimer);
-  const onlineCount = participants.filter(p => p.online).length;
-  if (onlineCount <= 2) {
-    // 只有1-2人在线（含房主），不等直接回
-    const combined = pendingAiText.trim();
-    pendingAiText = "";
-    if (combined) callAI(combined);
+// ========== EMOJI REACTIONS ==========
+const REACT_EMOJIS = { flower: "💐", poop: "💩", happy: "😊", thumbsup: "👍" };
+const REACT_TAG_RE = /\[REACT:(flower|poop|happy|thumbsup):([^\]]+)\]/g;
+
+// 解析文本中的反应标签，返回 { reactions: [{type, target}], cleanText }
+function parseReactions(text) {
+  const reactions = [];
+  const cleanText = text.replace(REACT_TAG_RE, (match, type, target) => {
+    reactions.push({ type, target: target.trim() });
+    return "";
+  }).trim();
+  return { reactions, cleanText };
+}
+
+// 表情飞向头像动画
+function flyEmojiToTarget(emoji, targetName, delay) {
+  setTimeout(() => {
+    const bar = document.getElementById("onlineBar");
+    const tag = bar.querySelector(`.tag[data-name="${targetName}"]`);
+    if (!tag) return;
+    const rect = tag.getBoundingClientRect();
+    const el = document.createElement("span");
+    el.className = "fly-emoji";
+    el.textContent = emoji;
+    // 起点：聊天区底部中央
+    const chatBox = document.getElementById("chatBox");
+    const cbRect = chatBox.getBoundingClientRect();
+    const startX = cbRect.left + cbRect.width / 2 - 18;
+    const startY = cbRect.bottom - 60;
+    const endX = rect.left + rect.width / 2 - 18;
+    const endY = rect.top + rect.height / 2 - 18;
+    el.style.left = startX + "px";
+    el.style.top = startY + "px";
+    el.style.opacity = "0";
+    document.body.appendChild(el);
+    // 用Web Animation API实现飞行动画
+    el.animate([
+      { left: startX+"px", top: startY+"px", opacity: 0, transform: "scale(0.3) rotate(-20deg)", offset: 0 },
+      { opacity: 1, transform: "scale(1.4) rotate(5deg)", offset: 0.15 },
+      { left: endX+"px", top: endY+"px", opacity: 1, transform: "scale(1.2) rotate(0deg)", offset: 0.65 },
+      { left: endX+"px", top: (endY-8)+"px", opacity: 0, transform: "scale(0.5) rotate(10deg)", offset: 1 }
+    ], { duration: 1400, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)", fill: "forwards" }).onfinish = () => el.remove();
+  }, delay || 0);
+}
+
+// 显示表情反应（飞行动画版）
+function showReaction(reactions) {
+  if (!reactions || !reactions.length) return;
+  let delay = 0;
+  reactions.forEach(r => {
+    const emoji = REACT_EMOJIS[r.type];
+    if (!emoji) return;
+    if (r.target === "all") {
+      // 所有人 → 飞向每个在线参与者
+      participants.filter(p => p.online).forEach((p, i) => {
+        flyEmojiToTarget(emoji, p.name, delay + i * 150);
+      });
+      delay += participants.length * 150;
+    } else {
+      flyEmojiToTarget(emoji, r.target, delay);
+      delay += 300;
+    }
+  });
+}
+
+// 从文本中剥离反应标签（用于流式显示）
+function stripReactTags(text) {
+  return text.replace(REACT_TAG_RE, "").trim();
+}
+
+// ========== TYPING INDICATOR ==========
+let lastTypingBroadcast = 0;
+let typingTimers = new Map();
+
+function broadcastTyping() {
+  const now = Date.now();
+  if (now - lastTypingBroadcast < 3000) return;
+  lastTypingBroadcast = now;
+  if (isHost) {
+    broadcastToAll({ type: "typing", name: myName });
   } else {
-    // 多人在线，等大家说完
-    aiDebounceTimer = setTimeout(() => {
-      const combined = pendingAiText.trim();
-      pendingAiText = "";
-      if (combined) callAI(combined);
-    }, AI_DEBOUNCE_MS);
+    if (hostConn?.open) hostConn.send({ type: "typing", name: myName });
   }
 }
 
-async function callAI(userText) {
-  if (!hostApiKey || roomEnded || aiMuted) return;
-  messagesHistory.push({ role: "user", content: userText });
+// 显示某人在打字
+function showTypingIndicator(name) {
+  const bar = document.getElementById("onlineBar");
+  const tag = bar.querySelector(`.tag[data-name="${name}"]`);
+  if (!tag || name === myName) return; // 不显示自己
+  tag.classList.add("is-typing");
+  // 3秒后自动清除
+  if (typingTimers.has(name)) clearTimeout(typingTimers.get(name));
+  typingTimers.set(name, setTimeout(() => {
+    tag.classList.remove("is-typing");
+    typingTimers.delete(name);
+  }, 3000));
+}
 
-  // 防止上下文超限：保留system prompt + 最近40条对话（约20轮）
-  if (messagesHistory.length > 42) {
-    messagesHistory = [messagesHistory[0], ...messagesHistory.slice(-40)];
+// ========== AI TRIGGER (按需触发) ==========
+
+// 检测消息是否应触发 AI（@提及 或 自然语言指令）
+function shouldTriggerAI(text) {
+  // @提及
+  if (/@(小羊|正义的小羊)/.test(text)) return true;
+  // 自然语言触发词
+  const triggers = [
+    /小羊[，,]?你?(来|说说|评评|讲讲|分析|总结|看看|觉得|怎么看|说两句|给个意见)/,
+    /你(来|给)(评评|说说|总结|分析|判断|看看)/,
+    /大家(来|说说)?(评评|怎么看)/,
+    /(评评理|说说看|总结一下|分析分析|给个说法)/,
+    /@(小羊|正义的小羊)/
+  ];
+  return triggers.some(r => r.test(text));
+}
+
+// @小羊按钮 - 插入@小羊到输入框并聚焦
+function mentionSheep() {
+  const input = document.getElementById("userInput");
+  const val = input.value;
+  // 如果已经有@小羊就不重复插入
+  if (val.includes("@小羊")) { input.focus(); return; }
+  input.value = (val ? val + " " : "") + "@小羊 ";
+  input.focus();
+  // 光标定位到末尾
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+
+// 快捷按钮触发 AI
+function askSheep(intent) {
+  const intentLabels = {
+    judge: "来评理", summarize: "总结一下",
+    analyze: "帮分析", opinion: "你咋看"
+  };
+  const label = intentLabels[intent] || "来评理";
+
+  displayNotice(`${myName} 点了「${label}」`);
+
+  if (!hostApiKey && !isHost) {
+    if (hostConn?.open) hostConn.send({ type: "request-ai", intent });
+    return;
+  }
+  if (!hostApiKey || roomEnded || aiMuted) return;
+
+  broadcastToAll({ type: "ai-trigger", name: myName, intent });
+
+  const prompts = {
+    judge: "你来评评理，客观公正地说，谁对谁错",
+    summarize: "用简短的话总结一下大家刚才聊了什么",
+    analyze: "你帮大家分析一下现在这个情况",
+    opinion: "你作为一个有见识的朋友，说说你的看法"
+  };
+  callAIWithPrompt(prompts[intent] || prompts.judge);
+}
+
+// 构建完整上下文并调用 AI
+function callAIWithPrompt(explicitPrompt) {
+  if (!hostApiKey || roomEnded || aiMuted) return;
+  // 构建完整上下文：system + 全部对话历史 + 当前指令
+  const ctx = [
+    { role: "system", content: AI_PROMPT },
+    ...messagesHistory.slice(-40) // 最近20轮对话
+  ];
+  if (explicitPrompt) {
+    ctx.push({ role: "user", content: explicitPrompt });
+  }
+  // 防超限
+  if (ctx.length > 42) ctx.splice(1, ctx.length - 42);
+
+  _callAIDirect(ctx, explicitPrompt);
+}
+
+// 直接调用 DeepSeek API（流式）
+async function _callAIDirect(messagesToSend, userVisibleText) {
+  if (roomEnded || aiMuted) return;
+  // 记录到历史（用简短可见文本，不存完整prompt）
+  if (userVisibleText) {
+    messagesHistory.push({ role: "user", content: userVisibleText });
   }
 
   const aiDiv = displayMsg("ai", "", AI_NAME, "🐑");
@@ -1222,7 +1460,6 @@ async function callAI(userText) {
   if (aiText) { aiText.innerHTML = '<span class="typing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>'; }
   broadcastToAll({ type: "ai-loading" });
 
-  // 60秒超时保护
   const ctrl = new AbortController();
   const timeout = setTimeout(() => ctrl.abort(), 60000);
 
@@ -1230,7 +1467,7 @@ async function callAI(userText) {
     const resp = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${hostApiKey}` },
-      body: JSON.stringify({ model: MODEL, messages: messagesHistory, stream: true }),
+      body: JSON.stringify({ model: MODEL, messages: messagesToSend, stream: true }),
       signal: ctrl.signal
     });
     clearTimeout(timeout);
@@ -1251,13 +1488,26 @@ async function callAI(userText) {
         if (ds === "[DONE]") continue;
         try {
           const delta = JSON.parse(ds).choices?.[0]?.delta?.content;
-          if (delta) { full += delta; if (aiText) aiText.textContent = full; chatBox.scrollTop = chatBox.scrollHeight; broadcastToAll({ type: "ai-delta", content: delta }); }
+          if (delta) { full += delta; if (aiText) aiText.textContent = stripReactTags(full); chatBox.scrollTop = chatBox.scrollHeight; broadcastToAll({ type: "ai-delta", content: delta }); }
         } catch(e) {}
       }
     }
 
     if (roomEnded) return;
-    if (full) { messagesHistory.push({ role: "assistant", content: full }); broadcastToAll({ type: "ai-end", fullContent: full }); playAIDoneSound(); }
+    if (full) {
+      // 解析反应标签并触发动画
+      const { reactions, cleanText } = parseReactions(full);
+      if (reactions.length) {
+        showReaction(reactions);
+        broadcastToAll({ type: "ai-react", reactions });
+        // 等表情飞完再更新文本
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      if (aiText) aiText.textContent = cleanText || stripReactTags(full);
+      messagesHistory.push({ role: "assistant", content: cleanText || stripReactTags(full) });
+      broadcastToAll({ type: "ai-end", fullContent: cleanText || stripReactTags(full) });
+      playAIDoneSound();
+    }
     else { if (aiText) aiText.textContent = "（打了个哈欠）"; }
     saveCache();
   } catch(e) {
@@ -1299,6 +1549,7 @@ function guestHandleData(data) {
   switch(data.type) {
     case "room-ended": showEnded(); break;
     case "room-full": alert("房间满了（最多10人）~"); backToSetup(); break;
+    case "typing": showTypingIndicator(data.name); break;
     case "identity":
       myName = data.nickname;
       myAvatar = data.avatar;
@@ -1327,6 +1578,16 @@ function guestHandleData(data) {
     case "file-message":
       displayFileMsg("other", data.fileName, data.sizeText, data.sender, data.avatar);
       break;
+    case "ai-trigger": {
+      const intentLabels = { judge: "来评理", summarize: "总结一下", analyze: "帮分析", opinion: "你咋看" };
+      const label = intentLabels[data.intent] || "来评理";
+      displayNotice(`${data.name} 点了「${label}」`);
+      break;
+    }
+    case "ai-react": {
+      showReaction(data.reactions);
+      break;
+    }
     case "ai-loading": {
       const ld = displayMsg("ai", "", AI_NAME, "🐑");
       ld.classList.add("ai-streaming");
@@ -1336,12 +1597,15 @@ function guestHandleData(data) {
     }
     case "ai-start": {
       const streaming = chatBox.querySelector(".msg.ai.ai-streaming");
-      if (streaming) { const t = streaming.querySelector(".ai-text"); if(t) { t.innerHTML = ""; } }
+      if (streaming) { const t = streaming.querySelector(".ai-text"); if(t) { t.innerHTML = ""; t.dataset.raw = ""; } }
       break;
     }
     case "ai-delta": {
       const streaming = chatBox.querySelector(".msg.ai.ai-streaming");
-      if (streaming) { const t = streaming.querySelector(".ai-text"); if(t) t.textContent += data.content; }
+      if (streaming) {
+        const t = streaming.querySelector(".ai-text");
+        if (t) { t.dataset.raw = (t.dataset.raw || "") + data.content; t.textContent = stripReactTags(t.dataset.raw); }
+      }
       chatBox.scrollTop = chatBox.scrollHeight;
       break;
     }
@@ -1397,7 +1661,7 @@ function showEnded() {
   disableInput("已结束");
 }
 
-function showRoomEnded(reason, canRetry) {
+function showRoomEnded(reason, canRetry, customDesc) {
   roomEnded = true;
   const overlay = document.getElementById("endedOverlay");
   const title = document.getElementById("endedTitle");
@@ -1408,8 +1672,8 @@ function showRoomEnded(reason, canRetry) {
     desc.innerHTML = reason || "网络可能有点问题";
     retryBtn.style.display = "block";
   } else {
-    title.textContent = "聊天结束";
-    desc.innerHTML = reason || "所有记录已清除<br>下次再聊~";
+    title.textContent = "房间已结束";
+    desc.innerHTML = customDesc || reason || "所有记录已清除<br>下次再聊~";
     retryBtn.style.display = "none";
   }
   overlay.classList.remove("hidden");
@@ -1440,7 +1704,7 @@ async function retryJoinRoom() {
       hostConn.on("data", guestHandleData);
       hostConn.on("close", guestDisconnected);
       hostConn.on("error", guestDisconnected);
-      hostConn.send({ type: "join", nickname: "用户" + randomString(3), userId: myUserId });
+      hostConn.send({ type: "join", nickname: myName || "新访客", userId: myUserId });
     });
     hostConn.on("error", (e) => {
       console.error("hostConn error:", e);
@@ -1460,6 +1724,7 @@ function backToSetup() {
   document.getElementById("headerBar").classList.add("hidden");
   document.getElementById("onlineBar").classList.add("hidden");
   document.getElementById("inputArea").classList.add("hidden");
+  document.getElementById("quickActions").classList.remove("show");
   document.getElementById("connStatus").classList.add("hidden");
   document.getElementById("endBtn").classList.add("hidden");
   document.getElementById("muteBtn").classList.remove("hidden");
@@ -1481,10 +1746,8 @@ function backToSetup() {
   hostApiKey = null;
   reconnectCount = 0;
   chatStarted = false;
-  pendingAiText = "";
   inviteAutoShown = false;
   avatarIdx = 0;
-  clearTimeout(aiDebounceTimer);
   document.getElementById("muteBtn").textContent = "🔊";
   // Reset overlay text back to default
   document.getElementById("endedTitle").textContent = "聊天结束";
@@ -1527,7 +1790,7 @@ function guestReconnect() {
         conn.on("data", guestHandleData);
         conn.on("close", guestDisconnected);
         conn.on("error", guestDisconnected);
-        conn.send({ type: "join", nickname: myName || ("用户" + randomString(3)), userId: myUserId });
+        conn.send({ type: "join", nickname: myName || "新访客", userId: myUserId });
       });
       conn.on("error", () => {
         if (settled) return;
@@ -1588,7 +1851,7 @@ async function confirmCreate() {
   }
   hostApiKey = noAi ? null : key;
   isHost = true;
-  myName = "房主";
+  myName = "1号";
   myAvatar = "👑";
 
   if (noAi) {
@@ -1650,7 +1913,7 @@ async function joinRoom() {
       hostConn.on("data", guestHandleData);
       hostConn.on("close", guestDisconnected);
       hostConn.on("error", guestDisconnected);
-      hostConn.send({ type: "join", nickname: "用户" + randomString(3), userId: myUserId });
+      hostConn.send({ type: "join", nickname: myName || "新访客", userId: myUserId });
     });
     hostConn.on("error", (e) => {
       console.error("hostConn error:", e);
@@ -1729,7 +1992,12 @@ function sendMyMessage() {
     displayMsg("self", text, myName, myAvatar, mid);
     confirmMsgStatus(mid, "ok");
     broadcastToAll({ type: "chat-message", text, sender: myName, avatar: myAvatar });
-    if (!aiMuted) triggerAIDebounced(`${myName}: ${text}`);
+    // 记录到 AI 上下文，但不自动触发
+    if (hostApiKey) messagesHistory.push({ role: "user", content: `${myName}: ${text}` });
+    // 只有 @小羊 或自然语言触发词才让 AI 回应
+    if (!aiMuted && shouldTriggerAI(text)) {
+      callAIWithPrompt(`你来看看上面聊的，回应一下`);
+    }
   } else {
     if (hostConn?.open) {
       displayMsg("self", text, myName, myAvatar, mid);
@@ -1771,7 +2039,7 @@ function sendImageMsg(base64Data, fileName) {
     displayImageMsg("self", base64Data, myName, myAvatar, mid);
     confirmMsgStatus(mid, "ok");
     broadcastToAll({ type: "image-message", image: base64Data, sender: myName, avatar: myAvatar });
-    if (!aiMuted) triggerAIDebounced(`${myName}: [发了一张图片]`);
+    if (hostApiKey) messagesHistory.push({ role: "user", content: `${myName}: [发了一张图片]` });
   } else {
     if (hostConn?.open) {
       displayImageMsg("self", base64Data, myName, myAvatar, mid);
@@ -1788,17 +2056,7 @@ function sendFileMsg(base64Data, fileName, fileSize, fileType) {
     displayFileMsg("self", fileName, sizeText, myName, myAvatar, mid);
     confirmMsgStatus(mid, "ok");
     broadcastToAll({ type: "file-message", fileName, sizeText, sender: myName, avatar: myAvatar });
-    // 文本类文件内容发给AI理解
-    if (!aiMuted) {
-      // base64解码获取文件文本内容
-      try {
-        const textContent = atob(base64Data.split(',')[1]);
-        const preview = textContent.substring(0, 2000);
-        triggerAIDebounced(`${myName}: [上传了文件 ${fileName}，内容如下]\n${preview}`);
-      } catch(e) {
-        triggerAIDebounced(`${myName}: [上传了文件 ${fileName}]`);
-      }
-    }
+    if (hostApiKey) messagesHistory.push({ role: "user", content: `${myName}: [上传了文件 ${fileName}]` });
   } else {
     if (hostConn?.open) {
       displayFileMsg("self", fileName, sizeText, myName, myAvatar, mid);
@@ -1857,6 +2115,8 @@ userInput.addEventListener("input", () => {
   userInput.style.height = "auto";
   userInput.style.height = Math.min(userInput.scrollHeight, 100) + "px";
   detectMentionTrigger();
+  // 打字状态广播（节流3秒）
+  broadcastTyping();
 });
 
 userInput.addEventListener("blur", () => {
