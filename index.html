@@ -7,6 +7,12 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>AI 群聊室</title>
+  <meta name="description" content="和正义的小羊一起聊聊天，P2P 加密，阅后即焚，分享链接即可加入">
+  <meta property="og:title" content="正义的小羊 · AI 群聊室">
+  <meta property="og:description" content="邀请朋友加入群聊，AI 小羊旁听，关键时刻忍不住说两句">
+  <meta property="og:image" content="sheep-avatar-256.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
   <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
   <script>window.Peer || document.write('<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.1/dist/peerjs.min.js"><\/script>')</script>
   <style>
@@ -174,6 +180,23 @@
       text-align: center; font-size: 12px; color: #5a7a96;
       padding: 5px 14px; align-self: center;
       background: #e4f0fa; border-radius: 20px; font-weight: 600;
+    }
+    .waiting-hint {
+      text-align: center; font-size: 13px; color: #7a8b9c;
+      padding: 16px; align-self: center;
+      display: flex; align-items: center; gap: 8px; justify-content: center;
+    }
+    .waiting-pulse {
+      width: 10px; height: 10px; border-radius: 50%; background: #4a90e2;
+      animation: waitPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes waitPulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+    .time-sep {
+      text-align: center; font-size: 11px; color: #a0b4c8;
+      padding: 8px 0 4px; letter-spacing: 1px; font-weight: 600;
     }
     .banner {
       border-radius: 12px; padding: 12px 16px;
@@ -441,6 +464,17 @@
     @keyframes bounce {
       0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
       30% { transform: translateY(-6px); opacity: 1; }
+    }
+    .ai-thinking {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: #7a8b9c; font-style: italic;
+    }
+    .thinking-text {
+      animation: thinkFade 1.5s ease-in-out infinite;
+    }
+    @keyframes thinkFade {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
     }
 
     @keyframes popIn {
@@ -761,6 +795,7 @@ let myName = localStorage.getItem("chat_user_name") || "", myAvatar = localStora
 let myUserId = localStorage.getItem("chat_user_id") || (() => { const id = "u-" + Math.random().toString(36).slice(2,10); localStorage.setItem("chat_user_id", id); return id; })();
 let hasAIRoom = false, avatarIdx = 0, inviteAutoShown = false, chatStarted = false;
 let lastSoulTime = 0; // 灵魂时刻冷却
+let lastMsgTime = 0; // 时间分隔线
 let participants = [];
 let msgIdCounter = 0;
 let heartbeatTimers = new Map();
@@ -893,6 +928,17 @@ const chatBox = document.getElementById("chatBox");
 const userInput = document.getElementById("userInput");
 
 function displayMsg(type, text, name, avatar, msgId) {
+  // 时间分隔线：间隔>5分钟显示时间
+  const now = Date.now();
+  if (lastMsgTime && now - lastMsgTime > 5 * 60 * 1000) {
+    const sep = document.createElement("div");
+    sep.className = "time-sep";
+    const d = new Date(now);
+    sep.textContent = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+    chatBox.appendChild(sep);
+  }
+  lastMsgTime = now;
+
   const div = document.createElement("div");
   div.className = `msg ${type}`;
   if (msgId) div.dataset.msgId = msgId;
@@ -1213,6 +1259,7 @@ function hostHandleData(conn, data) {
       broadcastToAll({ type: "user-joined", name: assignedName, avatar, id: conn.peer }, conn);
       broadcastParticipants();
       displayNotice(`${avatar} ${assignedName} 加入了聊天`);
+      removeWaitingHint();
       playJoinSound();
       chatStarted = true;
 
@@ -1303,6 +1350,8 @@ function hostHandleData(conn, data) {
       overlay.classList.remove("hidden");
       setTimeout(() => { connections.forEach(c => { try{c.close();}catch(e){} }); connections = []; }, 1000);
     }
+  } else if (data.type === "guest-leaving") {
+    displayNotice(`${data.name || "访客"}正在离开`);
   }
 }
 
@@ -1568,7 +1617,7 @@ async function _callAIDirect(messagesToSend, userVisibleText) {
 
   const aiDiv = displayMsg("ai", "", AI_NAME, "🐑");
   const aiText = aiDiv.querySelector(".ai-text");
-  if (aiText) { aiText.innerHTML = '<span class="typing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>'; }
+  if (aiText) { aiText.innerHTML = '<span class="ai-thinking"><span class="thinking-text">小羊在想</span><span class="typing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></span>'; }
   broadcastToAll({ type: "ai-loading" });
 
   const ctrl = new AbortController();
@@ -1758,6 +1807,9 @@ function guestHandleData(data) {
     case "msg-ack":
       confirmMsgStatus(data.msgId, data.status);
       break;
+    case "host-leaving":
+      displayNotice("房主正在离开…");
+      break;
     case "room-end-notice":
       if (!roomEnded) showEnded();
       break;
@@ -1877,6 +1929,7 @@ function backToSetup() {
   chatBox.innerHTML = "";
   hasAIRoom = false;
   lastSoulTime = 0;
+  lastMsgTime = 0;
   hostConn = null;
   hostApiKey = null;
   reconnectCount = 0;
@@ -1902,11 +1955,20 @@ function backToSetup() {
 // ========== RECONNECT (GUEST) ==========
 function guestReconnect() {
   if (roomEnded || isReconnecting) return;
+  if (reconnectCount >= 8) {
+    showRoomEnded("房主已离开，房间已结束", false, "连接多次失败，房主可能已关闭页面<br>你可以创建一个新房间");
+    return;
+  }
   isReconnecting = true;
   reconnectCount++;
   const delay = Math.min(2000 * reconnectCount, 10000); // 递增间隔，最大10秒
-  setConnStatus(`连接断开，重连中...`, "warn");
-  disableInput("正在重连...");
+  if (reconnectCount >= 5) {
+    setConnStatus("重连失败，房主可能已离开", "err");
+    disableInput("房主可能已离开");
+  } else {
+    setConnStatus(`连接断开，重连中(${reconnectCount})…`, "warn");
+    disableInput("正在重连…");
+  }
 
   setTimeout(() => {
     if (roomEnded || !peer || peer.destroyed) { isReconnecting = false; return; }
@@ -1951,8 +2013,9 @@ function guestReconnect() {
 
 function guestDisconnected() {
   if (roomEnded || isReconnecting) return;
-  setConnStatus("连接断开了", "err");
-  disableInput("正在重连...");
+  setConnStatus("连接断开了，正在重连…", "err");
+  disableInput("正在重连…");
+  displayNotice("连接断开，正在尝试重连");
   if (hostConn) { stopHeartbeat(hostConn); hostConn = null; }
   guestReconnect();
 }
@@ -2079,6 +2142,24 @@ function enterChat() {
       updateOnlineBar();
     }
   }
+  // 等待状态：一个人时显示提示
+  if (isHost && participants.filter(p => p.online).length <= 1) {
+    showWaitingHint();
+  }
+}
+
+function showWaitingHint() {
+  if (document.getElementById("waitingHint")) return;
+  const hint = document.createElement("div");
+  hint.id = "waitingHint";
+  hint.className = "waiting-hint";
+  hint.innerHTML = '<span class="waiting-pulse"></span> 等人加入中… 先把链接分享出去';
+  chatBox.appendChild(hint);
+}
+
+function removeWaitingHint() {
+  const hint = document.getElementById("waitingHint");
+  if (hint) hint.remove();
 }
 
 function endRoom() {
@@ -2409,7 +2490,23 @@ function randomString(n) { return Math.random().toString(36).substring(2, 2+n); 
   }
 })();
 
-window.addEventListener("beforeunload", () => { if (roomEnded) clearCache(); });
+window.addEventListener("beforeunload", () => {
+  if (roomEnded) { clearCache(); return; }
+  // 房主离开时广播警告，给访客缓冲
+  if (isHost && connections.length > 0) {
+    try {
+      broadcastToAll({ type: "host-leaving" });
+      // 短暂延迟确保消息发出（beforeunload 中同步发送）
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "", false); // 同步请求阻塞页面关闭一小段时间
+    } catch(e) {}
+  }
+  // 访客离开时通知房主
+  if (!isHost && hostConn?.open) {
+    try { hostConn.send({ type: "guest-leaving", name: myName }); } catch(e) {}
+  }
+  clearCache();
+});
 </script>
 </body>
 </html>
