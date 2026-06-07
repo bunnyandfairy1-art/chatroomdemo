@@ -13,9 +13,10 @@
   <meta property="og:image" content="sheep-avatar-256.png">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
   <script>window.Peer || document.write('<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.1/dist/peerjs.min.js"><\/script>')</script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     :root {
       --duo-green: #4a90e2;
@@ -601,7 +602,7 @@
   <!-- Quick AI actions (scrollable, AI rooms only) -->
   <div class="quick-actions" id="quickActions">
     <button class="qa-btn" onclick="mentionSheep()">@小羊</button>
-    <button class="qa-btn" onclick="askSheep('opinion')">💡 你咋看</button>
+    <button class="qa-btn" onclick="askSheep('opinion')">💡 接话</button>
     <button class="qa-btn" onclick="askSheep('summarize')">📝 总结</button>
     <button class="qa-btn" onclick="askSheep('analyze')">🔍 帮分析</button>
     <button class="qa-btn" onclick="askSheep('judge')">⚖️ 来评理</button>
@@ -776,7 +777,7 @@ const AI_PROMPT = `你是"正义的小羊"。群聊里的一员，不是客服�
 - 不疑神疑鬼，普通吐槽和玩笑别当成pua
 - 不说教不啰嗦
 - 有记忆，追踪上下文，回复连贯
-- 【铁律】你收到的消息中，格式为「X号: 内容」的是真人发的消息，你只能基于这些内容回复。你自己之前的回复不算事实。绝对不要编造任何人的发言、对话或观点。如果某人没有说过某句话，就不要假装他说过。
+- 【铁律】消息历史中有两类内容：①格式为「X号: 内容」的是真人消息，这是你回复的事实依据；②role为assistant的是你自己之前的回复，可以看但不算事实。只基于真人消息回复，不要基于自己之前的回复编造新内容。绝对不要编造任何人的发言。
 
 # 你的行为模式
 - 你平时旁听，只有被点名才会说话（快捷按钮或@你）
@@ -824,7 +825,7 @@ const AI_PROMPT_SINGLE = `你是"正义的小羊"。一个有趣、有正义感�
 - 不说教不啰嗦
 - 不疑神疑鬼，普通吐槽别当成PUA
 - 有记忆，追踪上下文，回复连贯
-- 【铁律】你收到的消息中，格式为「X号: 内容」的是真人发的消息，你只能基于这些内容回复。你自己之前的回复不算事实。绝对不要编造对方的发言或观点。如果对方没有说过某句话，就不要假装他说过。
+- 【铁律】消息历史中有两类内容：①格式为「X号: 内容」的是真人消息，这是你回复的事实依据；②role为assistant的是你自己之前的回复，可以看但不算事实。只基于真人消息回复，不要基于自己之前的回复编造新内容。绝对不要编造对方的发言。
 
 # 你的行为模式
 - 你平时旁听，只有被点名才会说话
@@ -900,10 +901,7 @@ let msgIdCounter = 0;
 let heartbeatTimers = new Map();
 let reconnectCount = 0;
 let isReconnecting = false;
-let messagesHistory = [{
-  role: "system",
-  content: AI_PROMPT
-}];
+let messagesHistory = [];
 
 // ========== AUDIO (Duolingo-style) ==========
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1288,6 +1286,7 @@ function initPeer(id, onOpen) {
         roomId = roomId + randomString(2);
         if (oldPeer) { try { oldPeer.destroy(); } catch(e){} }
         peer = null;
+        participants = []; // 防止重复 1 号
         initPeer(roomId);
       }
     } else {
@@ -1407,7 +1406,7 @@ function hostHandleData(conn, data) {
     const sender = conn.guestInfo?.name || "访客";
     const intentLabels = {
       judge: "来评理", summarize: "总结",
-      analyze: "帮分析", opinion: "你咋看"
+      analyze: "帮分析", opinion: "接话"
     };
     const label = intentLabels[data.intent] || "来评理";
     displayNotice(`${sender} 点了「${label}」`);
@@ -1418,7 +1417,7 @@ function hostHandleData(conn, data) {
         judge: `${sender} 请你评评理，客观公正地说`,
         summarize: `${sender} 请你总结一下刚才聊的内容`,
         analyze: `${sender} 请你分析一下现在的情况`,
-        opinion: `${sender} 想听听你的看法`
+        opinion: `${sender} 点了接话，你自然地接上这个话题聊两句`
       };
       callAIWithPrompt(prompts[data.intent] || prompts.judge);
     }
@@ -1472,7 +1471,7 @@ function hostHandleDisconnect(conn) {
 }
 
 function syncHistoryTo(conn) {
-  for (let i = 1; i < messagesHistory.length; i++) {
+  for (let i = 0; i < messagesHistory.length; i++) {
     const msg = messagesHistory[i];
     if (msg.role === "user") {
       const ci = msg.content.indexOf(": ");
@@ -1661,7 +1660,7 @@ function mentionSheep() {
 function askSheep(intent) {
   const intentLabels = {
     judge: "来评理", summarize: "总结",
-    analyze: "帮分析", opinion: "你咋看"
+    analyze: "帮分析", opinion: "接话"
   };
   const label = intentLabels[intent] || "来评理";
 
@@ -1679,7 +1678,7 @@ function askSheep(intent) {
     judge: "你来评评理，客观公正地说说你的看法",
     summarize: "用简短的话总结一下刚才聊了什么",
     analyze: "你帮忙分析一下现在这个情况",
-    opinion: "你作为一个有见识的朋友，说说你的看法"
+    opinion: "自然地接上话题，像朋友一样聊两句"
   };
   callAIWithPrompt(prompts[intent] || prompts.judge);
 }
@@ -1698,11 +1697,9 @@ function callAIWithPrompt(explicitPrompt) {
     : `【房间状态】当前在线${onlineList.length}人：${onlineList.join('、')}。只涉及这些人。`;
 
   const sysContent = roomCtx + '\n\n' + basePrompt;
-  // 只发真人消息给 AI（role:user），不发自己之前的回复（role:assistant），防止自我延续偏差
-  const realMsgs = messagesHistory.filter(m => m.role === "user");
   const ctx = [
     { role: "system", content: sysContent },
-    ...realMsgs
+    ...messagesHistory
   ];
   if (explicitPrompt) {
     ctx.push({ role: "user", content: explicitPrompt });
@@ -1838,10 +1835,12 @@ function guestHandleData(data) {
         document.getElementById("headerSheep").style.display = "";
         document.querySelector(".header .title").textContent = "小羊群聊";
         document.title = "AI 群聊室";
+        document.getElementById("quickActions").classList.add("show");
       } else {
         document.getElementById("headerSheep").style.display = "none";
         document.querySelector(".header .title").textContent = "群聊房间";
         document.title = "群聊室";
+        document.getElementById("quickActions").classList.remove("show");
       }
       break;
     case "chat-message":
@@ -1858,7 +1857,7 @@ function guestHandleData(data) {
       saveCache();
       break;
     case "ai-trigger": {
-      const intentLabels = { judge: "来评理", summarize: "总结", analyze: "帮分析", opinion: "你咋看" };
+      const intentLabels = { judge: "来评理", summarize: "总结", analyze: "帮分析", opinion: "接话" };
       const label = intentLabels[data.intent] || "来评理";
       displayNotice(`${data.name} 点了「${label}」`);
       break;
@@ -2005,10 +2004,12 @@ async function retryJoinRoom() {
 }
 
 function backToSetup() {
+  if (_saveCacheTimer) { clearTimeout(_saveCacheTimer); _saveCacheTimer = null; }
   // Hide overlay and chat UI
   document.getElementById("endedOverlay").classList.add("hidden");
   document.getElementById("headerBar").classList.add("hidden");
   document.getElementById("onlineBar").classList.add("hidden");
+  document.getElementById("onlineBar").innerHTML = "";
   document.getElementById("inputArea").classList.add("hidden");
   document.getElementById("quickActions").classList.remove("show");
   document.getElementById("connStatus").classList.add("hidden");
@@ -2037,6 +2038,7 @@ function backToSetup() {
   chatStarted = false;
   inviteAutoShown = false;
   avatarIdx = 0;
+  msgIdCounter = 0;
   document.getElementById("headerSheep").style.display = "none";
   // Reset overlay text back to default
   document.getElementById("endedTitle").textContent = "聊天结束";
@@ -2047,6 +2049,8 @@ function backToSetup() {
   document.getElementById("joinInput").value = "";
   // Clean URL
   history.replaceState(null, '', location.pathname);
+  // 清掉旧缓存（阅后即焚）
+  clearCache();
   // Destroy peer
   if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
   // Show setup
@@ -2160,7 +2164,7 @@ async function confirmCreate() {
     document.getElementById("headerSheep").style.display = "none";
     document.title = "群聊室";
   } else {
-    messagesHistory = [{ role: "system", content: AI_PROMPT }];
+    messagesHistory = [];
     document.querySelector(".header .title").textContent = "小羊群聊";
     document.getElementById("headerSheep").style.display = "";
     document.title = "AI 群聊室";
@@ -2566,7 +2570,10 @@ function randomString(n) { return Math.random().toString(36).substring(2, 2+n); 
         isHost = true;
         myName = "1号";
         myAvatar = "👑";
-        messagesHistory = hostApiKey ? [{ role: "system", content: AI_PROMPT }] : [];
+        messagesHistory = [];
+        // 清掉旧的参与者缓存，防止重连后出现多个1号
+        participants = [];
+        clearCache();
         document.getElementById("setupScreen").classList.add("hidden");
         enterChat();
         enableInput();
@@ -2574,6 +2581,7 @@ function randomString(n) { return Math.random().toString(36).substring(2, 2+n); 
         document.title = hostApiKey ? "AI 群聊室" : "群聊室";
         if (hostApiKey) {
           hasAIRoom = true;
+          document.getElementById("headerSheep").style.display = "";
         } else {
           document.getElementById("headerSheep").style.display = "none";
           hasAIRoom = false;
@@ -2599,13 +2607,21 @@ let feedbackImages = [];
 let emailjsReady = false;
 
 function initEmailJS() {
-  if (emailjsReady) return;
-  try {
+  if (emailjsReady) return Promise.resolve();
+  return new Promise((resolve) => {
     if (typeof emailjs !== "undefined") {
-      emailjs.init({ publicKey: EMAILJS_PUBLIC });
-      emailjsReady = true;
+      try { emailjs.init({ publicKey: EMAILJS_PUBLIC }); emailjsReady = true; } catch(e) {}
+      resolve(); return;
     }
-  } catch(e) { console.warn("EmailJS init failed:", e); }
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
+    s.onload = () => {
+      try { emailjs.init({ publicKey: EMAILJS_PUBLIC }); emailjsReady = true; } catch(e) { console.warn("EmailJS init failed:", e); }
+      resolve();
+    };
+    s.onerror = () => { console.warn("EmailJS script load failed"); resolve(); };
+    document.head.appendChild(s);
+  });
 }
 
 function openFeedback() {
