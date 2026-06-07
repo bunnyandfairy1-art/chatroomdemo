@@ -15,6 +15,7 @@
   <meta name="twitter:card" content="summary">
   <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
   <script>window.Peer || document.write('<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.1/dist/peerjs.min.js"><\/script>')</script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     :root {
       --duo-green: #4a90e2;
@@ -69,6 +70,40 @@
     }
     .header .btn-sm:active { transform: scale(0.95); }
     .header .btn-danger { background: #fff0f0; color: #e63946; border: 1.5px solid #ffc8c8; }
+    .header .feedback-btn {
+      font-size: 12px; opacity: 0.3; cursor: pointer;
+      transition: opacity 0.3s; padding: 2px 6px;
+      color: var(--duo-text-light); text-decoration: none;
+    }
+    .header .feedback-btn:hover { opacity: 0.7; }
+    .feedback-card { max-width: 360px; }
+    .feedback-card h3 { margin: 0 0 12px; font-size: 16px; color: var(--duo-text); }
+    .feedback-card textarea {
+      width: 100%; border: 1.5px solid var(--duo-border); border-radius: 10px;
+      padding: 10px; font-size: 14px; resize: none; font-family: inherit;
+      box-sizing: border-box; outline: none;
+    }
+    .feedback-card textarea:focus { border-color: var(--duo-green); }
+    .feedback-img-row {
+      display: flex; align-items: center; gap: 8px; margin: 10px 0 6px;
+    }
+    .feedback-img-btn {
+      font-size: 13px; color: var(--duo-green); cursor: pointer;
+      padding: 4px 12px; border: 1.5px solid var(--duo-border); border-radius: 16px;
+      background: #f8fbff;
+    }
+    #feedbackImgCount { font-size: 12px; color: #999; }
+    .feedback-preview {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .feedback-preview img {
+      width: 60px; height: 60px; object-fit: cover; border-radius: 8px;
+      border: 1.5px solid var(--duo-border);
+    }
+    .feedback-actions {
+      display: flex; gap: 10px;
+    }
+    .feedback-actions .btn-full { flex: 1; }
 
     /* ===== Online bar ===== */
     .online-bar {
@@ -545,6 +580,7 @@
     <span class="title">群聊房间</span>
     <span class="badge" onclick="toggleInvite()">+邀请</span>
     <button class="btn-sm btn-danger hidden" id="endBtn" onclick="endRoom()">结束</button>
+    <span class="feedback-btn" onclick="openFeedback()">反馈</span>
   </div>
 
   <!-- Online bar -->
@@ -639,6 +675,24 @@
       <p id="endedDesc">所有记录已清除<br>下次再聊~</p>
       <button class="btn-full" id="endedRetryBtn" onclick="retryJoinRoom()" style="display:none;margin-bottom:10px;background:#f6c544;color:#2c3e50;box-shadow:0 4px 0 #d4a800;">重新连接</button>
       <button class="btn-full" onclick="backToSetup()">再开一局</button>
+    </div>
+  </div>
+
+  <!-- Feedback modal -->
+  <div class="overlay hidden" id="feedbackOverlay" onclick="if(event.target===this)closeFeedback()">
+    <div class="card feedback-card">
+      <h3>意见反馈</h3>
+      <textarea id="feedbackText" placeholder="说说你的想法、遇到的问题或建议…" rows="4"></textarea>
+      <div class="feedback-img-row">
+        <label class="feedback-img-btn" for="feedbackImgInput">📷 添加图片</label>
+        <input type="file" id="feedbackImgInput" accept="image/*" multiple style="display:none" onchange="previewFeedbackImg(this)">
+        <span id="feedbackImgCount"></span>
+      </div>
+      <div class="feedback-preview" id="feedbackPreview"></div>
+      <div class="feedback-actions">
+        <button class="btn-full" style="background:#e8e8e8;color:#666;box-shadow:0 3px 0 #ccc;" onclick="closeFeedback()">取消</button>
+        <button class="btn-full" id="feedbackSendBtn" onclick="sendFeedback()">发送</button>
+      </div>
     </div>
   </div>
 
@@ -1317,7 +1371,7 @@ function hostHandleData(conn, data) {
     if (hostApiKey) {
       const prompts = {
         judge: `${sender} 请你评评理，客观公正地说`,
-        summarize: `${sender} 请你总结一下大家聊的内容`,
+        summarize: `${sender} 请你总结一下刚才聊的内容`,
         analyze: `${sender} 请你分析一下现在的情况`,
         opinion: `${sender} 想听听你的看法`
       };
@@ -1578,8 +1632,8 @@ function askSheep(intent) {
 
   const prompts = {
     judge: "你来评评理，客观公正地说，谁对谁错",
-    summarize: "用简短的话总结一下大家刚才聊了什么",
-    analyze: "你帮大家分析一下现在这个情况",
+    summarize: "用简短的话总结一下刚才聊了什么",
+    analyze: "你帮忙分析一下现在这个情况",
     opinion: "你作为一个有见识的朋友，说说你的看法"
   };
   callAIWithPrompt(prompts[intent] || prompts.judge);
@@ -1590,12 +1644,14 @@ function callAIWithPrompt(explicitPrompt) {
   if (!hostApiKey || roomEnded) return;
   // 构建房间上下文：当前在线的人
   const onlineList = participants.filter(p => p.online).map(p => p.name);
-  const roomCtx = onlineList.length > 0
-    ? `当前在线${onlineList.length}人：${onlineList.join('、')}`
-    : `当前只有${myName}一个人`;
-  // 构建完整上下文：system + 房间信息 + 对话历史 + 当前指令
+  const isSingle = onlineList.length <= 1;
+  const roomCtx = isSingle
+    ? `【重要：当前房间只有${onlineList[0] || myName}一个人，没有其他人在场。不要提及或编造任何其他人。直接和这个人对话即可。】`
+    : `【房间状态】当前在线${onlineList.length}人：${onlineList.join('、')}。只涉及这些人，不要编造不存在的参与者。`;
+  // 房间状态放在 system prompt 最前面，权重最高
+  const sysContent = roomCtx + '\n\n' + AI_PROMPT;
   const ctx = [
-    { role: "system", content: AI_PROMPT + `\n\n【房间状态】${roomCtx}。根据实际在线人数调整你的说话方式，不要凭空编造不存在的人。` },
+    { role: "system", content: sysContent },
     ...messagesHistory.slice(-40)
   ];
   if (explicitPrompt) {
@@ -1604,7 +1660,8 @@ function callAIWithPrompt(explicitPrompt) {
   // 防超限
   if (ctx.length > 42) ctx.splice(1, ctx.length - 42);
 
-  _callAIDirect(ctx, explicitPrompt);
+  // 不传 explicitPrompt 到 _callAIDirect，防止 meta-prompt 积累到 messagesHistory
+  _callAIDirect(ctx, null);
 }
 
 // 直接调用 DeepSeek API（流式）
@@ -1683,16 +1740,14 @@ async function _callAIDirect(messagesToSend, userVisibleText) {
 async function aiGreetNewUser(nickname) {
   if (!hostApiKey || roomEnded) return;
   const onlineList = participants.filter(p => p.online).map(p => p.name);
-  const roomCtx = onlineList.length > 0
-    ? `当前在线${onlineList.length}人：${onlineList.join('、')}`
-    : `当前只有${myName}和${nickname}`;
-  const sysPrompt = AI_PROMPT + `\n\n【房间状态】${roomCtx}。根据实际在线人数调整你的说话方式。`;
-  const prompt = `新朋友「${nickname}」刚加入群聊，简短打个招呼欢迎一下，一句话就行。`;
+  const roomCtx = `【房间状态】当前在线${onlineList.length}人：${onlineList.join('、')}。只涉及这些人。`;
+  const sysPrompt = roomCtx + '\n\n' + AI_PROMPT;
+  const prompt = `新朋友「${nickname}」刚加入聊天，简短打个招呼欢迎一下，一句话就行。`;
   try {
     const resp = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${hostApiKey}` },
-      body: JSON.stringify({ model: MODEL, messages: [{ role: "system", content: sysPrompt }, ...messagesHistory, { role: "user", content: prompt }], max_tokens: 60 })
+      body: JSON.stringify({ model: MODEL, messages: [{ role: "system", content: sysPrompt }, ...messagesHistory.slice(-20), { role: "user", content: prompt }], max_tokens: 60 })
     });
     if (!resp.ok) return;
     const data = await resp.json();
@@ -2489,6 +2544,148 @@ function randomString(n) { return Math.random().toString(36).substring(2, 2+n); 
     setTimeout(() => joinRoom(), 200);
   }
 })();
+
+// ========== FEEDBACK ==========
+const EMAILJS_SERVICE = "service_ki7c1mf";
+const EMAILJS_TEMPLATE = "template_5ve5e5t";
+const EMAILJS_PUBLIC = "zcENl8KXKgTSew4jK";
+let feedbackImages = [];
+let emailjsReady = false;
+
+function initEmailJS() {
+  if (emailjsReady) return;
+  try {
+    if (typeof emailjs !== "undefined") {
+      emailjs.init({ publicKey: EMAILJS_PUBLIC });
+      emailjsReady = true;
+    }
+  } catch(e) { console.warn("EmailJS init failed:", e); }
+}
+
+function openFeedback() {
+  initEmailJS(); // 每次打开时确保初始化
+  document.getElementById("feedbackOverlay").classList.remove("hidden");
+  document.getElementById("feedbackText").value = "";
+  feedbackImages = [];
+  document.getElementById("feedbackPreview").innerHTML = "";
+  document.getElementById("feedbackImgCount").textContent = "";
+  document.getElementById("feedbackSendBtn").textContent = "发送";
+  document.getElementById("feedbackSendBtn").disabled = false;
+}
+
+function closeFeedback() {
+  document.getElementById("feedbackOverlay").classList.add("hidden");
+}
+
+function previewFeedbackImg(input) {
+  const files = Array.from(input.files);
+  if (feedbackImages.length + files.length > 3) {
+    alert("最多添加 3 张图片");
+    input.value = "";
+    return;
+  }
+  files.forEach(file => {
+    if (feedbackImages.length >= 3) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      feedbackImages.push(e.target.result);
+      renderFeedbackPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = "";
+}
+
+function renderFeedbackPreview() {
+  const preview = document.getElementById("feedbackPreview");
+  preview.innerHTML = feedbackImages.map((src, i) =>
+    `<img src="${src}" onclick="removeFeedbackImg(${i})" style="cursor:pointer" title="点击移除">`
+  ).join("");
+  document.getElementById("feedbackImgCount").textContent =
+    feedbackImages.length ? `${feedbackImages.length}/3` : "";
+}
+
+function removeFeedbackImg(idx) {
+  feedbackImages.splice(idx, 1);
+  renderFeedbackPreview();
+}
+
+function compressImage(base64Src, maxWidth, quality) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => resolve(base64Src);
+    img.src = base64Src;
+  });
+}
+
+async function uploadToImgbb(base64Data) {
+  const IMGBB_KEY = "6fdf6e5a55b91104782f658c30b89bd3";
+  // 去掉 data:image/xxx;base64, 前缀
+  const base64Clean = base64Data.split(",")[1] || base64Data;
+  const resp = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "image=" + encodeURIComponent(base64Clean)
+  });
+  const data = await resp.json();
+  if (data.success) return data.data.display_url;
+  return null;
+}
+
+async function sendFeedback() {
+  const text = document.getElementById("feedbackText").value.trim();
+  if (!text && feedbackImages.length === 0) {
+    alert("请输入反馈内容或添加图片");
+    return;
+  }
+
+  const btn = document.getElementById("feedbackSendBtn");
+  btn.textContent = "发送中…";
+  btn.disabled = true;
+
+  try {
+    if (typeof emailjs === "undefined") {
+      alert("反馈服务暂不可用，请稍后重试");
+      btn.textContent = "发送";
+      btn.disabled = false;
+      return;
+    }
+
+    const sendParams = {
+      message: text || "（仅图片反馈）",
+      room_id: roomId || "unknown",
+      user_name: myName || "unknown",
+      timestamp: new Date().toLocaleString("zh-CN"),
+      image_count: feedbackImages.length
+    };
+
+    // 压缩图片 → 上传到 imgbb → 邮件里发图片链接
+    for (let i = 0; i < feedbackImages.length && i < 3; i++) {
+      btn.textContent = `上传图片 ${i + 1}/${feedbackImages.length}…`;
+      const compressed = await compressImage(feedbackImages[i], 500, 0.5);
+      const url = await uploadToImgbb(compressed);
+      if (url) sendParams[`image_${i + 1}`] = url;
+    }
+
+    btn.textContent = "发送邮件…";
+    await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, sendParams);
+    btn.textContent = "已发送 ✓";
+    setTimeout(closeFeedback, 1200);
+  } catch(e) {
+    btn.textContent = "发送失败，点重试";
+    btn.disabled = false;
+    console.error("Feedback error:", e?.text || e?.message || e);
+  }
+}
 
 window.addEventListener("beforeunload", () => {
   if (roomEnded) { clearCache(); return; }
