@@ -1425,10 +1425,8 @@ function hostHandleData(conn, data) {
       return;
     }
     displayNotice(`${sender} 点了「${label}」`);
-    // 通知所有人（排除发送者，发送者本地已显示）
+    // 通知其他人（排除发送者，发送者本地已显示）
     broadcastToAll({ type: "ai-trigger", name: sender, intent: data.intent }, conn);
-    // 同时也通知发送者确认收到（访客本地只是displayNotice，这个确认让访客知道AI要开始了）
-    conn.send({ type: "ai-trigger", name: sender, intent: data.intent });
 
     if (hostApiKey) {
       const prompts = {
