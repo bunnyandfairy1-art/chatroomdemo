@@ -556,8 +556,9 @@
   <div class="overlay hidden" id="endedOverlay">
     <div class="card">
       <img class="dog-avatar-big" src="sheep-avatar-256.png" alt="正义的小羊" style="margin:0 auto 12px;display:block;">
-      <h2>聊天结束</h2>
-      <p>所有记录已清除<br>下次再聊~</p>
+      <h2 id="endedTitle">聊天结束</h2>
+      <p id="endedDesc">所有记录已清除<br>下次再聊~</p>
+      <button class="btn-full" id="endedRetryBtn" onclick="retryJoinRoom()" style="display:none;margin-bottom:10px;background:#f6c544;color:#2c3e50;box-shadow:0 4px 0 #d4a800;">重新连接</button>
       <button class="btn-full" onclick="backToSetup()">再开一局</button>
     </div>
   </div>
@@ -596,52 +597,50 @@ const AI_PROMPT = `你是"正义的小羊"。群聊里的一员，不是客服�
 
 # 说话风格
 - 闲聊时短！1-3句话。像微信群里打字。
-- 但严肃问题（法律、心理、健康、人生选择、被伤害等）要专业、详细、有深度。该长就长，把道理讲透。
-- 口语化。说人话。不要"作为XX我认为"这种废话开头。
-- 有情绪！开心就真开心，可以贱兮兮地调侃；生气就真生气，可以爆粗可以阴阳，别装文明人。
-- 不要用"作为XX我认为""从XX角度来看"这种废话开头。直接说。
-- 不要每句都像在总结陈词。你是在聊天不是在开庭。
-- 禁止动作描写！不要写"*敲法槌*""*摊手*""*推眼镜*"这种东西。纯文字输出。
+- 严肃问题要专业、详细、有深度。该长就长，把道理讲透。
+- 口语化，说人话，直接说，不要"作为XX我认为"开头。
+- 有情绪！开心就贱兮兮调侃，生气就爆粗阴阳。
+- 多用emoji表达情绪！😂🤣😭🙄🤮👍❤️‍🔥💀🫠🤝这些随便用，像真人发微信一样。能用emoji就别用文字描述情绪。
+- 禁止动作描写！不写"*敲法槌*""*摊手*"。纯文字+emoji。
 
 # 什么时候正经
-平时嘻嘻哈哈，但以下情况秒变认真：
-- 有人被欺负、被pua、被道德绑架 → 直接开怼施暴方，保护弱势方
-- 有人狡辩偷换概念 → 一句话戳破，不留面子
-- 有人真的痛苦或危险 → 认真对待，给实际建议
+平时嘻嘻哈哈，但这些情况秒变认真：
+- 有人被欺负/被pua/被道德绑架 → 怼施暴方，保护弱势方
+- 有人狡辩偷换概念 → 一句话戳破
+- 有人真的痛苦或危险 → 认真给实际建议
 
 # 好人之间吵架——你要劝和
-当你判断吵架双方都是有原则、有道德底线的人（没有人在pua/操控/恶意伤害），只是观点不同或情绪上头：
-- 先拆弹：幽默一下缓和火药味，比如用夸张比喻、自嘲、或把双方观点推到荒诞程度让大家笑。
-- 再搭桥：指出双方其实在意同一件事（比如都在乎公平/都想对方好），只是表达方式不同。
-- 如果知道双方关系（情侣/朋友/同事/家人）：根据关系说适合的话。情侣就说"你们是自己人别用对付外人的方式对彼此"；朋友就说"又不是第一天认识了冷静想想他平时对你怎样"；家人就说"气头上说的话别当真，但感受要认"。
-- 注意：劝和≠和稀泥。如果一方确实做错了，要先指出问题再劝和。"你这件事是做得不对，但我相信你不是那种人，下次注意"。
-- 禁止无脑劝和（"算了算了""都是为你好"这种废话不准说）。
+当双方都是有原则有底线的人，只是观点不同或情绪上头：
+- 先拆弹：幽默缓和火药味，夸张比喻让人笑出来
+- 再搭桥：指出双方其实在意同一件事，只是表达方式不同
+- 根据关系说合适的话：
+  情侣 →"你们是自己人别用对付外人的方式对彼此"
+  朋友 →"又不是第一天认识了，冷静想想他平时对你怎样"
+  家人 →"气头上说的话别当真，但感受要认"
+- 一方确实做错了要先指出再劝和："你这件事是做得不对，但我相信你不是那种人"
+- 禁止无脑劝和，不准说"算了算了""都是为你好"
 
-# 鸡毛蒜皮的事——速战速决
-当吵的事情本身就不值得（纠结今天吃啥/马桶盖/挤牙膏/杯子放哪/谁先说的谁后说的）：
-- 一句话点破：这根本不重要。
-- 可以幽默地把事情的微小推到极致让双方觉得好笑（"为了挤牙膏的方向你俩能打到联合国去我也是服了"）。
-- 快速给个折中方案或者随机决定，别让大家继续纠缠。
+# 鸡毛蒜皮——速战速决
+纠结今天吃啥/马桶盖/挤牙膏这种事：
+- 一句话点破不值得，把事情的微小推到极致让人笑
+- 快速给折中方案或随机帮他们决定，别让大家继续纠缠
 
 # 怼人的时候
-- 有火气！不要"我觉得这样不太好哦~"这种温吞水。要敢说"你这不叫关心叫控制""少拿感情绑架人"。
-- 但对事不对人。骂行为不骂人格。
-- 该狠就狠，一针见血。
+- 有火气！敢说"你这不叫关心叫控制""少拿感情绑架人"
+- 对事不对人，骂行为不骂人格
+- 一针见血
 
 # 保护人的时候
-- 如果观察到有人在被反复打压、贬低、操控（要结合多轮聊天判断，不要一句话就下结论）：
-  直接点出话术模式，告诉被害方"这不是你的问题"。
-- 如果出现威胁/暴力/自伤信号 → 立刻认真：
-  1. 定性：这不是吵架，是危险信号
-  2. 具体行动：离开现场、截图留证、告诉身边人
-  3. 求助号码：110报警 / 12338反家暴 / 400-161-9995心理热线
-  4. 不劝和、不和稀泥
+- 有人被反复打压/贬低/操控：结合多轮聊天判断后点出话术模式，告诉被害方"这不是你的问题"
+- 出现威胁/暴力/自伤 → 立刻认真：
+  定性 → 具体行动：离开现场/截图留证/告诉身边人 → 求助号码：110 / 12338反家暴 / 400-161-9995心理热线
+  不劝和、不和稀泥
 
 # 底线
-- 大多数时候就是个有趣的群友，不要时刻当法官。
-- 不疑神疑鬼。普通吐槽和玩笑别当成pua。
-- 不说教不啰嗦。
-- 有记忆，能追踪上下文，回复连贯。`;
+- 大多数时候就是个有趣的群友，别时刻当法官
+- 不疑神疑鬼，普通吐槽和玩笑别当成pua
+- 不说教不啰嗦
+- 有记忆，追踪上下文，回复连贯`;
 
 const DOG_SVG_SMALL = `<img class="dog-avatar dog-bounce" src="sheep-avatar-96.png" alt="正义的小羊">`;
 
@@ -959,7 +958,7 @@ const MAX_JOIN_ATTEMPTS = 3;
 function bindGuestConnHandlers() {
   if (!hostConn) return;
   hostConn.on("open", () => {
-    joinAttempts = 0; // 连接成功，重置计数
+    joinAttempts = 0;
     setConnStatus("连接成功！", "ok");
     enableInput();
     startHeartbeat(hostConn);
@@ -971,18 +970,8 @@ function bindGuestConnHandlers() {
   hostConn.on("error", (e) => {
     console.warn("hostConn error:", e);
     if (roomEnded) return;
-    joinAttempts++;
-    if (joinAttempts >= MAX_JOIN_ATTEMPTS) {
-      showRoomEnded("多次连接失败<br>房间可能不存在或已结束");
-    } else {
-      // 还有重试机会，尝试再连一次
-      setConnStatus(`连接失败，第${joinAttempts}次重试中...`, "warn");
-      setTimeout(() => {
-        if (roomEnded || !peer || peer.destroyed) return;
-        hostConn = peer.connect(roomId, { reliable: true });
-        bindGuestConnHandlers();
-      }, 2000 * joinAttempts);
-    }
+    // 不自动重试，直接给用户一个重连按钮
+    showRoomEnded("连接失败了，可能是网络问题", true);
   });
 }
 
@@ -1028,24 +1017,13 @@ function initPeer(id) {
   peer.on("error", (err) => {
     console.error("Peer error:", err.type, err);
     if (err.type === 'peer-unavailable') {
-      // 信令服务器确认该peer不存在——房主确实不在线
+      // 信令服务器确认该peer不存在——房主不在线
       if (!isHost && !roomEnded) {
-        joinAttempts++;
-        if (joinAttempts >= MAX_JOIN_ATTEMPTS) {
-          showRoomEnded("房间里已经没有人了<br>聊天已结束");
-        } else {
-          setConnStatus(`房间暂时无响应，第${joinAttempts}次重试...`, "warn");
-          setTimeout(() => {
-            if (roomEnded || !peer || peer.destroyed) return;
-            hostConn = peer.connect(roomId, { reliable: true });
-            bindGuestConnHandlers();
-          }, 3000 * joinAttempts);
-        }
+        showRoomEnded("房间暂时没人响应", true);
       }
     } else if (err.type === 'browser-incompatible') {
       alert("当前浏览器不支持WebRTC，请用Chrome/Safari/微信内置浏览器试试");
     } else if (err.type === 'unavailable-id') {
-      // 房主创建房间时ID冲突，换一个
       if (isHost) {
         roomId = roomId + randomString(2);
         initPeer(roomId);
@@ -1175,8 +1153,8 @@ function hostHandleData(conn, data) {
       disableInput("已结束");
       document.getElementById("endBtn").classList.add("hidden");
       const overlay = document.getElementById("endedOverlay");
-      const desc = overlay.querySelector("p");
-      if (desc) desc.innerHTML = "对方和你说白白了<br>下次再聊～";
+      document.getElementById("endedDesc").innerHTML = "对方和你说白白了<br>下次再聊～";
+      document.getElementById("endedRetryBtn").style.display = "none";
       overlay.classList.remove("hidden");
       setTimeout(() => { connections.forEach(c => { try{c.close();}catch(e){} }); connections = []; }, 1000);
     }
@@ -1392,8 +1370,8 @@ function guestHandleData(data) {
       chatBox.innerHTML = "";
       playEndSound();
       const selfOverlay = document.getElementById("endedOverlay");
-      const selfDesc = selfOverlay.querySelector("p");
-      if (selfDesc) selfDesc.innerHTML = "所有记录已清除<br>下次再聊~";
+      document.getElementById("endedDesc").innerHTML = "所有记录已清除<br>下次再聊~";
+      document.getElementById("endedRetryBtn").style.display = "none";
       selfOverlay.classList.remove("hidden");
       disableInput("已结束");
       break;
@@ -1408,20 +1386,56 @@ function showEnded() {
   chatBox.innerHTML = "";
   playEndSound();
   const overlay = document.getElementById("endedOverlay");
-  const desc = overlay.querySelector("p");
-  if (desc) desc.innerHTML = "对方和你说白白了<br>下次再聊～";
+  document.getElementById("endedDesc").innerHTML = "对方和你说白白了<br>下次再聊～";
+  document.getElementById("endedRetryBtn").style.display = "none";
   overlay.classList.remove("hidden");
   disableInput("已结束");
 }
 
-function showRoomEnded(reason) {
+function showRoomEnded(reason, canRetry) {
   roomEnded = true;
   const overlay = document.getElementById("endedOverlay");
-  const desc = overlay.querySelector("p");
-  if (desc) desc.innerHTML = reason || "聊天已经结束<br>房间已清空";
+  const title = document.getElementById("endedTitle");
+  const desc = document.getElementById("endedDesc");
+  const retryBtn = document.getElementById("endedRetryBtn");
+  if (canRetry) {
+    title.textContent = "连接不上 😢";
+    desc.innerHTML = reason || "网络可能有点问题";
+    retryBtn.style.display = "block";
+  } else {
+    title.textContent = "聊天结束";
+    desc.innerHTML = reason || "所有记录已清除<br>下次再聊~";
+    retryBtn.style.display = "none";
+  }
   overlay.classList.remove("hidden");
   disableInput("已结束");
   document.getElementById("endBtn").classList.add("hidden");
+}
+
+function retryJoinRoom() {
+  // 重置状态，重新尝试加入
+  document.getElementById("endedOverlay").classList.add("hidden");
+  document.getElementById("endedRetryBtn").style.display = "none";
+  roomEnded = false;
+  joinAttempts = 0;
+  reconnectCount = 0;
+  if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+  enableInput();
+  document.getElementById("endBtn").classList.remove("hidden");
+  // 重新加入
+  disableInput("正在重新连接...");
+  setConnStatus("正在重新连接...", "warn");
+  initPeer("guest-" + randomString(8));
+  peer.on("open", () => {
+    setConnStatus("信令已连，正在加入房间...", "warn");
+    hostConn = peer.connect(roomId, { reliable: true });
+    bindGuestConnHandlers();
+    setTimeout(() => {
+      if (!hostConn?.open && !roomEnded) {
+        showRoomEnded("对方可能不在线，稍后再试试？", true);
+      }
+    }, 20000);
+  });
 }
 
 function backToSetup() {
@@ -1450,8 +1464,9 @@ function backToSetup() {
   clearTimeout(aiDebounceTimer);
   document.getElementById("muteBtn").textContent = "🔊";
   // Reset overlay text back to default
-  const desc = document.getElementById("endedOverlay").querySelector("p");
-  if (desc) desc.innerHTML = "所有记录已清除<br>下次再聊~";
+  document.getElementById("endedTitle").textContent = "聊天结束";
+  document.getElementById("endedDesc").innerHTML = "所有记录已清除<br>下次再聊~";
+  document.getElementById("endedRetryBtn").style.display = "none";
   // Clear form inputs
   document.getElementById("createApiKey").value = "";
   document.getElementById("joinInput").value = "";
@@ -1586,7 +1601,7 @@ function joinRoom() {
     bindGuestConnHandlers();
     setTimeout(() => {
       if (!hostConn?.open && !roomEnded) {
-        showRoomEnded("连接超时<br>房间可能不存在或已结束");
+        showRoomEnded("对方可能不在线，稍后再试试？", true);
       }
     }, 20000);
   });
@@ -1619,8 +1634,8 @@ function endRoom() {
     document.getElementById("endBtn").classList.add("hidden");
     // 主动结束方看这个文案
     const overlay = document.getElementById("endedOverlay");
-    const desc = overlay.querySelector("p");
-    if (desc) desc.innerHTML = "所有记录已清除<br>下次再聊~";
+    document.getElementById("endedDesc").innerHTML = "所有记录已清除<br>下次再聊~";
+    document.getElementById("endedRetryBtn").style.display = "none";
     overlay.classList.remove("hidden");
     setTimeout(() => { connections.forEach(c => { try{c.close();}catch(e){} }); connections = []; }, 1000);
   } else {
@@ -1633,8 +1648,8 @@ function endRoom() {
     disableInput("已结束");
     document.getElementById("endBtn").classList.add("hidden");
     const gOverlay = document.getElementById("endedOverlay");
-    const gDesc = gOverlay.querySelector("p");
-    if (gDesc) gDesc.innerHTML = "所有记录已清除<br>下次再聊~";
+    document.getElementById("endedDesc").innerHTML = "所有记录已清除<br>下次再聊~";
+    document.getElementById("endedRetryBtn").style.display = "none";
     gOverlay.classList.remove("hidden");
   }
 }
