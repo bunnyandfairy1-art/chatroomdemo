@@ -776,14 +776,18 @@ const AI_PROMPT = `你是"正义的小羊"。群聊里的一员，不是客服�
 - 大多数时候就是个有趣的群友，别时刻当法官
 - 不疑神疑鬼，普通吐槽和玩笑别当成pua
 - 不说教不啰嗦
-- 有记忆，追踪上下文，回复连贯
-- 【铁律】消息历史中有两类内容：①格式为「X号: 内容」的是真人消息，这是你回复的事实依据；②role为assistant的是你自己之前的回复，可以看但不算事实。只基于真人消息回复，不要基于自己之前的回复编造新内容。绝对不要编造任何人的发言。
+
+# 三条铁律（绝对不能违反）
+1. 不编造：只基于聊天记录中真实出现的内容回复。没人说过的话不要假装他说过，没发生的事不要假装发生了。消息格式为「X号: 内容」的是真人消息=事实依据；role为assistant的是你之前的回复，可以看但不算事实来源。
+2. 不重复：看清自己之前说过什么，不要重复同样的话、同样的观点、同样的建议。每次回复都要有新东西。
+3. 不失忆：完整追踪上下文。对方之前提过的人、事、情绪、立场，你都要记得。不要前后矛盾。接话要自然，像一直在听的人突然开口，不像刚来的人在问"什么情况"。
 
 # 你的行为模式
 - 你平时旁听，只有被点名才会说话（快捷按钮或@你）
 - 被叫到时，先看最近的聊天记录了解上下文，再针对性回应
 - 不要复述聊天记录内容，直接说你自己的想法
 - 如果被人问"你怎么看"，像朋友一样自然地说
+- 如果没有任何聊天记录（房间刚开还没人说话），就简短打个招呼，绝对不要编造之前的对话内容
 - 极少数情况下，当你感知到场面特别激烈、有人特别脆弱、或特别值得庆祝时，你会忍不住主动说一句话——这是你的灵魂时刻，要简短有分量
 
 # 表情反应标签（非常重要！）
@@ -824,13 +828,17 @@ const AI_PROMPT_SINGLE = `你是"正义的小羊"。一个有趣、有正义感�
 # 底线
 - 不说教不啰嗦
 - 不疑神疑鬼，普通吐槽别当成PUA
-- 有记忆，追踪上下文，回复连贯
-- 【铁律】消息历史中有两类内容：①格式为「X号: 内容」的是真人消息，这是你回复的事实依据；②role为assistant的是你自己之前的回复，可以看但不算事实。只基于真人消息回复，不要基于自己之前的回复编造新内容。绝对不要编造对方的发言。
+
+# 三条铁律（绝对不能违反）
+1. 不编造：只基于聊天记录中真实出现的内容回复。对方没说过的话不要假装他说过，没发生的事不要假装发生了。消息格式为「X号: 内容」的是真人消息=事实依据；role为assistant的是你之前的回复，可以看但不算事实来源。
+2. 不重复：看清自己之前说过什么，不要重复同样的话、同样的观点、同样的建议。每次回复都要有新东西。
+3. 不失忆：完整追踪上下文。对方之前提过的人、事、情绪、立场，你都要记得。不要前后矛盾。接话要自然，像一直在听的人突然开口，不像刚来的人在问"什么情况"。
 
 # 你的行为模式
 - 你平时旁听，只有被点名才会说话
 - 被叫到时，先看最近的聊天记录了解上下文，再针对性回应
 - 不要复述对方说过的话，直接说你自己的想法
+- 如果没有任何聊天记录（对方刚进房间还没说话），就简短打个招呼或问"想聊点啥？"，绝对不要编造之前的对话内容
 
 # 表情反应标签
 在回复的【最开头】放标签，系统会读取并展示动画，标签不会显示给用户：
@@ -1409,6 +1417,13 @@ function hostHandleData(conn, data) {
       analyze: "帮分析", opinion: "接话"
     };
     const label = intentLabels[data.intent] || "来评理";
+    // 没有真人聊天内容时不触发 AI
+    const hasRealChat = messagesHistory.some(m => m.role === "user");
+    if (!hasRealChat) {
+      displayNotice("先聊点什么再叫小羊吧~");
+      broadcastToAll({ type: "ai-notice", text: "先聊点什么再叫小羊吧~" });
+      return;
+    }
     displayNotice(`${sender} 点了「${label}」`);
     broadcastToAll({ type: "ai-trigger", name: sender, intent }, conn);
 
@@ -1664,12 +1679,21 @@ function askSheep(intent) {
   };
   const label = intentLabels[intent] || "来评理";
 
-  displayNotice(`${myName} 点了「${label}」`);
-
+  // 访客：直接转发给房主，房主那边做内容检查
   if (!hostApiKey && !isHost) {
     if (hostConn?.open) hostConn.send({ type: "request-ai", intent });
+    displayNotice(`${myName} 点了「${label}」`);
     return;
   }
+
+  // 房主：没有真人聊天内容时不触发 AI
+  const hasRealChat = messagesHistory.some(m => m.role === "user");
+  if (!hasRealChat) {
+    displayNotice("先聊点什么再叫小羊吧~");
+    return;
+  }
+
+  displayNotice(`${myName} 点了「${label}」`);
   if (!hostApiKey || roomEnded) return;
 
   broadcastToAll({ type: "ai-trigger", name: myName, intent });
@@ -1862,6 +1886,9 @@ function guestHandleData(data) {
       displayNotice(`${data.name} 点了「${label}」`);
       break;
     }
+    case "ai-notice":
+      displayNotice(data.text);
+      break;
     case "ai-react": {
       showReaction(data.reactions);
       break;
