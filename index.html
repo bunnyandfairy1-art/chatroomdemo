@@ -1631,7 +1631,7 @@ function askSheep(intent) {
   broadcastToAll({ type: "ai-trigger", name: myName, intent });
 
   const prompts = {
-    judge: "你来评评理，客观公正地说，谁对谁错",
+    judge: "你来评评理，客观公正地说说你的看法",
     summarize: "用简短的话总结一下刚才聊了什么",
     analyze: "你帮忙分析一下现在这个情况",
     opinion: "你作为一个有见识的朋友，说说你的看法"
@@ -1648,8 +1648,11 @@ function callAIWithPrompt(explicitPrompt) {
   const roomCtx = isSingle
     ? `【重要：当前房间只有${onlineList[0] || myName}一个人，没有其他人在场。不要提及或编造任何其他人。直接和这个人对话即可。】`
     : `【房间状态】当前在线${onlineList.length}人：${onlineList.join('、')}。只涉及这些人，不要编造不存在的参与者。`;
-  // 房间状态放在 system prompt 最前面，权重最高
-  const sysContent = roomCtx + '\n\n' + AI_PROMPT;
+  // 房间状态放开头，单人房间在末尾再强调一次（首尾夹击）
+  const tailReminder = isSingle
+    ? '\n\n【再次提醒：这是1对1对话，不是群聊。你面前只有一个人，像私聊一样自然地和他说话。不要用"双方""谁对谁错"等假设有多人在场的措辞。简短回应，别长篇大论。】'
+    : '';
+  const sysContent = roomCtx + '\n\n' + AI_PROMPT + tailReminder;
   const ctx = [
     { role: "system", content: sysContent },
     ...messagesHistory.slice(-40)
@@ -2273,7 +2276,7 @@ function sendMyMessage() {
     if (hostApiKey) messagesHistory.push({ role: "user", content: `${myName}: ${text}` });
     // 只有 @小羊 或自然语言触发词才让 AI 回应
     if (shouldTriggerAI(text)) {
-      callAIWithPrompt(`你来看看上面聊的，回应一下`);
+      callAIWithPrompt(`你看看上面说的，回应一下`);
     } else {
       checkSoulMoment(text, myName);
     }
