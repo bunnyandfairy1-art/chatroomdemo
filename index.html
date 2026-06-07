@@ -935,7 +935,8 @@ function stopHeartbeat(conn) {
 
 // ========== PEER SETUP ==========
 // Metered TURN 凭证 - 直接在浏览器端生成，无需服务器
-const TURN_DOMAIN = "sususuxx.metered.live";
+// 注意：TURN_DOMAIN 必须是实际 relay 域名（global.relay.metered.ca），不是面板子域名
+const TURN_DOMAIN = "global.relay.metered.ca";
 const TURN_SECRET = "y9m55RWUMsNPi2_ZCJMqqgPPu6Q92Bc6cp2iA0_dqX7fISpl";
 let cachedTurnServers = null;
 let turnCredTime = 0;
@@ -953,9 +954,10 @@ async function generateTurnCredentials() {
     const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(username + ":" + TURN_DOMAIN));
     const credential = btoa(String.fromCharCode(...new Uint8Array(sig)));
     cachedTurnServers = [
-      { urls: `turn:${TURN_DOMAIN}:80`, username, credential },
-      { urls: `turn:${TURN_DOMAIN}:443`, username, credential },
+      { urls: `turn:${TURN_DOMAIN}:80?transport=udp`, username, credential },
+      { urls: `turn:${TURN_DOMAIN}:80?transport=tcp`, username, credential },
       { urls: `turn:${TURN_DOMAIN}:443?transport=tcp`, username, credential },
+      { urls: `turns:${TURN_DOMAIN}:443?transport=tcp`, username, credential },
     ];
     turnCredTime = Date.now();
     console.log("TURN 凭证生成成功");
