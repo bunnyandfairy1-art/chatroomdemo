@@ -1539,10 +1539,15 @@ function askSheep(intent) {
 // 构建完整上下文并调用 AI
 function callAIWithPrompt(explicitPrompt) {
   if (!hostApiKey || roomEnded) return;
-  // 构建完整上下文：system + 全部对话历史 + 当前指令
+  // 构建房间上下文：当前在线的人
+  const onlineList = participants.filter(p => p.online).map(p => p.name);
+  const roomCtx = onlineList.length > 0
+    ? `当前在线${onlineList.length}人：${onlineList.join('、')}`
+    : `当前只有${myName}一个人`;
+  // 构建完整上下文：system + 房间信息 + 对话历史 + 当前指令
   const ctx = [
-    { role: "system", content: AI_PROMPT },
-    ...messagesHistory.slice(-40) // 最近20轮对话
+    { role: "system", content: AI_PROMPT + `\n\n【房间状态】${roomCtx}。根据实际在线人数调整你的说话方式，不要凭空编造不存在的人。` },
+    ...messagesHistory.slice(-40)
   ];
   if (explicitPrompt) {
     ctx.push({ role: "user", content: explicitPrompt });
@@ -1628,12 +1633,17 @@ async function _callAIDirect(messagesToSend, userVisibleText) {
 
 async function aiGreetNewUser(nickname) {
   if (!hostApiKey || roomEnded) return;
+  const onlineList = participants.filter(p => p.online).map(p => p.name);
+  const roomCtx = onlineList.length > 0
+    ? `当前在线${onlineList.length}人：${onlineList.join('、')}`
+    : `当前只有${myName}和${nickname}`;
+  const sysPrompt = AI_PROMPT + `\n\n【房间状态】${roomCtx}。根据实际在线人数调整你的说话方式。`;
   const prompt = `新朋友「${nickname}」刚加入群聊，简短打个招呼欢迎一下，一句话就行。`;
   try {
     const resp = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${hostApiKey}` },
-      body: JSON.stringify({ model: MODEL, messages: [...messagesHistory, { role: "user", content: prompt }], max_tokens: 60 })
+      body: JSON.stringify({ model: MODEL, messages: [{ role: "system", content: sysPrompt }, ...messagesHistory, { role: "user", content: prompt }], max_tokens: 60 })
     });
     if (!resp.ok) return;
     const data = await resp.json();
