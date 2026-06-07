@@ -1375,24 +1375,35 @@ function retryJoinRoom() {
   document.getElementById("endedOverlay").classList.add("hidden");
   document.getElementById("endedRetryBtn").style.display = "none";
   roomEnded = false;
-  joinAttempts = 0;
   reconnectCount = 0;
   if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
   enableInput();
   document.getElementById("endBtn").classList.remove("hidden");
-  // 重新加入
+  // 重新加入（与 joinRoom 相同的简单直连结构）
   disableInput("正在重新连接...");
   setConnStatus("正在重新连接...", "warn");
   initPeer("guest-" + randomString(8));
   peer.on("open", () => {
-    setConnStatus("信令已连，正在加入房间...", "warn");
+    setConnStatus("正在加入房间...", "warn");
     hostConn = peer.connect(roomId, { reliable: true });
-    bindGuestConnHandlers();
+    hostConn.on("open", () => {
+      setConnStatus("连接成功！", "ok");
+      enableInput();
+      startHeartbeat(hostConn);
+      hostConn.on("data", guestHandleData);
+      hostConn.on("close", guestDisconnected);
+      hostConn.on("error", guestDisconnected);
+      hostConn.send({ type: "join", nickname: "用户" + randomString(3), userId: myUserId });
+    });
+    hostConn.on("error", (e) => {
+      console.error("hostConn error:", e);
+      if (!roomEnded) showRoomEnded("连不上，可能是网络问题", true);
+    });
     setTimeout(() => {
       if (!hostConn?.open && !roomEnded) {
-        showRoomEnded("对方可能不在线，稍后再试试？", true);
+        showRoomEnded("对方可能不在线，稍后再试试", true);
       }
-    }, 20000);
+    }, 25000);
   });
 }
 
