@@ -952,42 +952,10 @@ function getPeerConfig() {
   };
 }
 
-let joinAttempts = 0;
-const MAX_JOIN_ATTEMPTS = 3;
-
-function bindGuestConnHandlers() {
-  if (!hostConn) return;
-  hostConn.on("open", () => {
-    joinAttempts = 0;
-    setConnStatus("连接成功！", "ok");
-    enableInput();
-    startHeartbeat(hostConn);
-    hostConn.on("data", guestHandleData);
-    hostConn.on("close", guestDisconnected);
-    hostConn.on("error", guestDisconnected);
-    hostConn.send({ type: "join", nickname: "用户" + randomString(3), userId: myUserId });
-  });
-  hostConn.on("error", (e) => {
-    console.warn("hostConn error:", e);
-    if (roomEnded) return;
-    // 不自动重试，直接给用户一个重连按钮
-    showRoomEnded("连接失败了，可能是网络问题", true);
-  });
-}
-
 function initPeer(id) {
-  const config = getPeerConfig();
-  peer = new Peer(id, config);
-
-  // 信令服务器连接超时检测（15秒连不上信令=网络问题或PeerJS服务不可用）
-  const signalingTimeout = setTimeout(() => {
-    if (peer && !peer.open && !peer.destroyed) {
-      setConnStatus("信令服务器连接超时，可能是网络问题", "err");
-    }
-  }, 15000);
+  peer = new Peer(id, getPeerConfig());
 
   peer.on("open", (pid) => {
-    clearTimeout(signalingTimeout);
     console.log("Peer open:", pid);
     if (isHost) {
       roomId = pid;
@@ -1035,18 +1003,8 @@ function initPeer(id) {
 
   peer.on("disconnected", () => {
     if (!roomEnded && peer && !peer.destroyed) {
-      setConnStatus("信令断开，正在重连...", "warn");
-      // 渐进重试：2s, 4s, 8s, 最长15s
-      let retryDelay = 2000;
-      const retrySignaling = () => {
-        if (roomEnded || !peer || peer.destroyed || peer.open) return;
-        peer.reconnect();
-        retryDelay = Math.min(retryDelay * 2, 15000);
-        setTimeout(() => {
-          if (!roomEnded && peer && !peer.destroyed && !peer.open) retrySignaling();
-        }, retryDelay);
-      };
-      setTimeout(retrySignaling, 2000);
+      console.log("Peer disconnected, reconnecting...");
+      setTimeout(() => { if (peer && !peer.destroyed) peer.reconnect(); }, 2000);
     }
   });
 }
@@ -1592,18 +1550,31 @@ function joinRoom() {
   enterChat();
   document.getElementById("endBtn").classList.remove("hidden");
   disableInput("正在连接...");
-  setConnStatus("正在连接信令服务器...", "warn");
+  setConnStatus("正在连接...", "warn");
   initPeer("guest-" + randomString(8));
 
   peer.on("open", () => {
-    setConnStatus("信令已连，正在加入房间...", "warn");
+    setConnStatus("正在加入房间...", "warn");
     hostConn = peer.connect(roomId, { reliable: true });
-    bindGuestConnHandlers();
+    hostConn.on("open", () => {
+      setConnStatus("连接成功！", "ok");
+      enableInput();
+      startHeartbeat(hostConn);
+      hostConn.on("data", guestHandleData);
+      hostConn.on("close", guestDisconnected);
+      hostConn.on("error", guestDisconnected);
+      hostConn.send({ type: "join", nickname: "用户" + randomString(3), userId: myUserId });
+    });
+    hostConn.on("error", (e) => {
+      console.error("hostConn error:", e);
+      if (!roomEnded) showRoomEnded("连不上，可能是网络问题", true);
+    });
+    // 连接超时
     setTimeout(() => {
       if (!hostConn?.open && !roomEnded) {
-        showRoomEnded("对方可能不在线，稍后再试试？", true);
+        showRoomEnded("对方可能不在线，稍后再试试", true);
       }
-    }, 20000);
+    }, 25000);
   });
 }
 
