@@ -1386,7 +1386,7 @@ function hostHandleData(conn, data) {
     if (hostApiKey) messagesHistory.push({ role: "user", content: `${sender}: ${data.text}` });
     // 只有被 @或自然语言才触发 AI
     if (shouldTriggerAI(data.text)) {
-      callAIWithPrompt(`${sender} 叫你呢，你看看上面聊的，回应一下`);
+      callAIWithPrompt(`${sender} 叫你了，针对上面最后说的内容回应一下，简短`);
     } else {
       checkSoulMoment(data.text, sender);
     }
@@ -1425,14 +1425,17 @@ function hostHandleData(conn, data) {
       return;
     }
     displayNotice(`${sender} 点了「${label}」`);
-    broadcastToAll({ type: "ai-trigger", name: sender, intent }, conn);
+    // 通知所有人（排除发送者，发送者本地已显示）
+    broadcastToAll({ type: "ai-trigger", name: sender, intent: data.intent }, conn);
+    // 同时也通知发送者确认收到（访客本地只是displayNotice，这个确认让访客知道AI要开始了）
+    conn.send({ type: "ai-trigger", name: sender, intent: data.intent });
 
     if (hostApiKey) {
       const prompts = {
-        judge: `${sender} 请你评评理，客观公正地说`,
-        summarize: `${sender} 请你总结一下刚才聊的内容`,
-        analyze: `${sender} 请你分析一下现在的情况`,
-        opinion: `${sender} 点了接话，你自然地接上这个话题聊两句`
+        judge: `${sender} 请你针对上面聊的内容评评理，只评价真实说过的话`,
+        summarize: `${sender} 请你用一两句话概括上面真实聊了什么`,
+        analyze: `${sender} 请你针对上面聊的内容帮忙分析一下`,
+        opinion: `${sender} 点了接话，针对上面最后聊的内容说说你的想法，简短回应，不要替别人说话`
       };
       callAIWithPrompt(prompts[data.intent] || prompts.judge);
     }
@@ -1486,6 +1489,7 @@ function hostHandleDisconnect(conn) {
 }
 
 function syncHistoryTo(conn) {
+  conn.send({ type: "sync-start" }); // 通知访客清空旧内容，准备接收完整历史
   for (let i = 0; i < messagesHistory.length; i++) {
     const msg = messagesHistory[i];
     if (msg.role === "user") {
@@ -1681,7 +1685,12 @@ function askSheep(intent) {
 
   // 访客：直接转发给房主，房主那边做内容检查
   if (!hostApiKey && !isHost) {
-    if (hostConn?.open) hostConn.send({ type: "request-ai", intent });
+    if (hostConn?.open) {
+      try { hostConn.send({ type: "request-ai", intent }); } catch(e) { displayNotice("发送失败，连接可能断开了"); return; }
+    } else {
+      displayNotice("连接已断开，无法请求AI");
+      return;
+    }
     displayNotice(`${myName} 点了「${label}」`);
     return;
   }
@@ -1699,15 +1708,19 @@ function askSheep(intent) {
   broadcastToAll({ type: "ai-trigger", name: myName, intent });
 
   const prompts = {
-    judge: "你来评评理，客观公正地说说你的看法",
-    summarize: "用简短的话总结一下刚才聊了什么",
-    analyze: "你帮忙分析一下现在这个情况",
-    opinion: "自然地接上话题，像朋友一样聊两句"
+    judge: "针对上面聊的内容评评理，只评价真实说过的话",
+    summarize: "用一两句话概括上面真实聊了什么",
+    analyze: "针对上面聊的内容帮忙分析一下",
+    opinion: "针对上面最后聊的内容说说你的想法，简短回应，不要替别人说话"
   };
   callAIWithPrompt(prompts[intent] || prompts.judge);
 }
 
 // 构建完整上下文并调用 AI
+// AI 调用队列：防止并发请求丢失
+let _aiCallQueue = [];
+let _aiCalling = false;
+
 function callAIWithPrompt(explicitPrompt) {
   if (!hostApiKey || roomEnded) return;
   const onlineList = participants.filter(p => p.online).map(p => p.name);
@@ -1728,7 +1741,26 @@ function callAIWithPrompt(explicitPrompt) {
   if (explicitPrompt) {
     ctx.push({ role: "user", content: explicitPrompt });
   }
-  _callAIDirect(ctx, null);
+
+  // 排队执行，不丢请求
+  _aiCallQueue.push(ctx);
+  _processAIQueue();
+}
+
+async function _processAIQueue() {
+  if (_aiCalling || _aiCallQueue.length === 0) return;
+  _aiCalling = true;
+  const ctx = _aiCallQueue.shift();
+  try {
+    await _callAIDirect(ctx, null);
+  } catch(e) {
+    console.error("AI call failed:", e);
+  } finally {
+    _aiCalling = false;
+  }
+  // 如果队列中还有多个，只保留最后一个（避免堆积）
+  if (_aiCallQueue.length > 1) _aiCallQueue = [_aiCallQueue[_aiCallQueue.length - 1]];
+  if (_aiCallQueue.length > 0) _processAIQueue();
 }
 
 // 直接调用 DeepSeek API（流式）
@@ -1839,6 +1871,9 @@ function guestHandleData(data) {
     case "room-ended": showEnded(); break;
     case "room-full": alert("房间满了（最多10人）~"); backToSetup(); break;
     case "typing": showTypingIndicator(data.name); break;
+    case "sync-start":
+      chatBox.innerHTML = ""; // 清空旧内容，准备接收完整历史
+      break;
     case "identity":
       myName = data.nickname;
       myAvatar = data.avatar;
@@ -1894,6 +1929,9 @@ function guestHandleData(data) {
       break;
     }
     case "ai-loading": {
+      // 防御：清除之前可能残留的streaming状态
+      const oldStreaming = chatBox.querySelector(".msg.ai.ai-streaming");
+      if (oldStreaming) oldStreaming.classList.remove("ai-streaming");
       const ld = displayMsg("ai", "", AI_NAME, "🐑");
       ld.classList.add("ai-streaming");
       const ldText = ld.querySelector(".ai-text");
@@ -1928,9 +1966,13 @@ function guestHandleData(data) {
       saveCache();
       break;
     }
-    case "ai-error":
+    case "ai-error": {
+      // 清除残留的streaming状态
+      const errStreaming = chatBox.querySelector(".msg.ai.ai-streaming");
+      if (errStreaming) errStreaming.remove();
       displayMsg("ai", "出错了：" + data.error, AI_NAME, "🐑");
       break;
+    }
     case "msg-ack":
       confirmMsgStatus(data.msgId, data.status);
       break;
@@ -2032,6 +2074,7 @@ async function retryJoinRoom() {
 
 function backToSetup() {
   if (_saveCacheTimer) { clearTimeout(_saveCacheTimer); _saveCacheTimer = null; }
+  _aiCallQueue = []; _aiCalling = false;
   // Hide overlay and chat UI
   document.getElementById("endedOverlay").classList.add("hidden");
   document.getElementById("headerBar").classList.add("hidden");
@@ -2350,7 +2393,7 @@ function sendMyMessage() {
     if (hostApiKey) messagesHistory.push({ role: "user", content: `${myName}: ${text}` });
     // 只有 @小羊 或自然语言触发词才让 AI 回应
     if (shouldTriggerAI(text)) {
-      callAIWithPrompt(`你看看上面说的，回应一下`);
+      callAIWithPrompt(`有人叫你，针对上面最后说的内容回应一下，简短`);
     } else {
       checkSoulMoment(text, myName);
     }
@@ -2510,7 +2553,7 @@ function currentMentionList() {
   const q = (mentionState.query || "").toLowerCase();
   const list = [];
   // AI 优先（仅 AI 房间）
-  if (hostApiKey) list.push({ name: AI_NAME, avatar: "🐑", isAI: true });
+  if (hasAIRoom) list.push({ name: AI_NAME, avatar: "🐑", isAI: true });
   // 所有在线参与者（不含自己）
   participants.forEach(p => {
     if (!p.online) return;
